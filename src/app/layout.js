@@ -6,7 +6,7 @@ import Footer from "@/components/ui/footer";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
+});  
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-gradient-to-br from-gray-950 to-black`}
       >
         <Navbar />
-        <main className="flex-grow">
+        <main className="flex-grow pt-20">
           {children}
         </main>
         <Footer />

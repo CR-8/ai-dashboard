@@ -1,11 +1,27 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Search } from "lucide-react";
 
 export default function Home() {
+    const [searchQuery, setSearchQuery] = useState("");
+    const router = useRouter();
+
+    const handleSearch = () => {
+        if (searchQuery.trim()) {
+            // Navigate to dashboard with search query as URL parameter
+            router.push(`/dashboard?search=${encodeURIComponent(searchQuery.trim())}`);
+        }
+    };    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
+
 return (
-    <div className="flex min-h-full flex-col items-center justify-center p-24">
+    <div className="flex min-h-[80vh] flex-col items-center justify-center p-24">
         <div className="mb-8 text-center">
             <h1 className="text-4xl font-bold text-white mb-2">Dashboard AI</h1>
             <p className="text-gray-400">Create stunning dashboards with the power of AI</p>
@@ -15,11 +31,14 @@ return (
             <div className="flex-grow px-6">
                 <input
                     type="text"
-                    placeholder="Ask me anything..."
+                    placeholder="Enter a keyword to analyze market trends (e.g., 'AI chatbots', 'electric vehicles')..."
                     className="h-full w-full bg-transparent outline-none placeholder:text-gray-400 text-white text-lg"
+                    onKeyDown={handleKeyPress}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
-            <div className="flex items-center justify-center mr-4 p-2 rounded-full hover:bg-white/10 cursor-pointer transition-colors">
+            <div className="flex items-center justify-center mr-4 p-2 rounded-full hover:bg-white/10 cursor-pointer transition-colors" onClick={handleSearch}>
                 <Search className="h-5 w-5 text-gray-300 hover:text-white transition-colors" />
             </div>
         </div>
