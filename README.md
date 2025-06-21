@@ -5,8 +5,7 @@ A modern Next.js 14 application that generates comprehensive dashboards with AI-
 ## Features
 
 - 🤖 **AI-Powered Analytics**: Generate instant insights on any topic using OpenAI GPT
-- 📊 **Interactive Charts**: Beautiful visualizations with Recharts (Bar, Line, Pie, Area charts)
-- 📈 **KPI Metrics**: Dynamic key performance indicators with visual trends
+- 📊 **Interactive Charts**: Beautiful visualizations with Recharts (Bar, Line, Pie, Area charts
 - 🎨 **Modern UI**: Built with ShadCN UI components and Tailwind CSS
 - 🌙 **Dark/Light Theme**: Complete theme switching support
 - 📱 **Responsive Design**: Works perfectly on all device sizes
