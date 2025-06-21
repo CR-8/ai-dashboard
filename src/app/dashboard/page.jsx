@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { 
   AreaChart, 
@@ -75,9 +75,9 @@ const defaultData = {
   }
 };
 
-function DashboardContent() {
+export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [data, setData] = useState(defaultData);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [error, setError] = useState(null);
@@ -93,11 +93,9 @@ function DashboardContent() {
   }, [searchParams]);
   const handleAnalyze = async (keyword = searchQuery) => {
     if (!keyword.trim()) return;
-    
     setLoading(true);
     setCurrentKeyword(keyword);
     setError(null);
-    
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -106,55 +104,16 @@ function DashboardContent() {
         },
         body: JSON.stringify({ keyword: keyword.trim() }),
       });
-      
       const result = await response.json();
-      
       if (result.success && result.data) {
-        // Transform API data to match our chart format
-        const transformedData = {
-          overview: result.data.overview,
-          monthlyData: result.data.monthlyData || [],
-          channels: result.data.channels || [],
-          topCompetitors: (result.data.topCompetitors || []).map((comp, index) => ({
-            ...comp,
-            color: [colors.accent1, colors.accent2, colors.accent3, colors.accent4, colors.accent5][index % 5]
-          })),
-          regions: result.data.regions || [],
-          performanceMetrics: [
-            { 
-              metric: "CAC", 
-              value: result.data.keyMetrics?.customerAcquisitionCost || 0, 
-              target: (result.data.keyMetrics?.customerAcquisitionCost || 0) * 1.2,
-              unit: "$" 
-            },
-            { 
-              metric: "LTV", 
-              value: result.data.keyMetrics?.lifetimeValue || 0, 
-              target: (result.data.keyMetrics?.lifetimeValue || 0) * 0.9,
-              unit: "$" 
-            },
-            { 
-              metric: "Churn Rate", 
-              value: result.data.keyMetrics?.churnRate || 0, 
-              target: (result.data.keyMetrics?.churnRate || 0) * 0.8,
-              unit: "%" 
-            },
-            { 
-              metric: "Conversion", 
-              value: result.data.keyMetrics?.conversionRate || 0, 
-              target: (result.data.keyMetrics?.conversionRate || 0) * 1.1,
-              unit: "%" 
-            }
-          ],
-          keyMetrics: result.data.keyMetrics || defaultData.keyMetrics
-        };
-        
-        setData(transformedData);
+        setData(result.data);
       } else {
+        setData(null);
         setError(result.error || 'Failed to analyze keyword');
         console.error('API Error:', result.error);
       }
     } catch (error) {
+      setData(null);
       setError('Network error - please check your connection');
       console.error('Error calling API:', error);
     } finally {
@@ -269,396 +228,389 @@ function DashboardContent() {
       </div>
 
       <div className="p-8 space-y-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <KPICard
-            title="Market Size"
-            value={data.overview.marketSize ? `$${data.overview.marketSize}B` : "No data"}
-            change={data.overview.growthRate !== "0%" ? data.overview.growthRate : null}
-            icon={Globe}
-            color={colors.primary}
-          />
-          <KPICard
-            title="Monthly Revenue"
-            value={data.monthlyData.length > 0 ? formatCurrency(data.monthlyData[data.monthlyData.length - 1]?.revenue || 0) : "No data"}
-            change={data.monthlyData.length > 0 ? "+8.2%" : null}
-            icon={DollarSign}
-            color={colors.success}
-          />
-          <KPICard
-            title="Active Users"
-            value={data.monthlyData.length > 0 ? formatNumber(data.monthlyData[data.monthlyData.length - 1]?.users || 0) : "No data"}
-            change={data.monthlyData.length > 0 ? "+12.3%" : null}
-            icon={Users}
-            color={colors.accent2}
-          />
-          <KPICard
-            title="Conversion Rate"
-            value={data.keyMetrics.conversionRate > 0 ? `${data.keyMetrics.conversionRate}%` : "No data"}
-            change={data.keyMetrics.conversionRate > 0 ? "+0.3%" : null}
-            icon={Target}
-            color={colors.accent3}
-          />
-        </div>       
-        {data.monthlyData.length > 0 ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/5">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Revenue vs Expenses Trend
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={320}>
-                  <AreaChart data={data.monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                    <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
-                    <YAxis stroke="#9CA3AF" tickFormatter={formatCurrency} fontSize={12} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1f2937', 
-                        border: '1px solid #374151',
-                        borderRadius: '12px',
-                        color: 'white',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                      }}
-                      formatter={(value) => [formatCurrency(value), '']}
-                    />
-                    <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="revenue"
-                      stackId="1"
-                      stroke={colors.primary}
-                      fill={colors.primary}
-                      fillOpacity={0.7}
-                      name="Revenue"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="expenses"
-                      stackId="2"
-                      stroke={colors.warning}
-                      fill={colors.warning}
-                      fillOpacity={0.7}
-                      name="Expenses"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/5">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  User Growth Trend
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={data.monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                    <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
-                    <YAxis stroke="#9CA3AF" tickFormatter={formatNumber} fontSize={12} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1f2937', 
-                        border: '1px solid #374151',
-                        borderRadius: '12px',
-                        color: 'white',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                      }}
-                      formatter={(value) => [formatNumber(value), 'Users']}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="users"
-                      stroke={colors.accent2}
-                      strokeWidth={4}
-                      dot={{ fill: colors.accent2, strokeWidth: 3, r: 5 }}
-                      name="Active Users"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {data.channels.length > 0 && (
-              <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/5">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    Traffic Sources
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <PieChart>
-                      <Pie
-                        data={data.channels}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={110}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}%`}
-                      >
-                        {data.channels.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1f2937', 
-                          border: '1px solid #374151',
-                          borderRadius: '12px',
-                          color: 'white',
-                          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                        }}
-                        formatter={(value) => [`${value}%`, 'Share']}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-
-            {data.performanceMetrics.length > 0 && (
-              <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/5">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    Performance Metrics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <BarChart data={data.performanceMetrics}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                      <XAxis dataKey="metric" stroke="#9CA3AF" fontSize={12} />
-                      <YAxis stroke="#9CA3AF" fontSize={12} />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1f2937', 
-                          border: '1px solid #374151',
-                          borderRadius: '12px',
-                          color: 'white',
-                          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                        }}
-                      />
-                      <Legend />
-                      <Bar dataKey="value" fill={colors.primary} name="Actual" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="target" fill={colors.accent4} name="Target" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        ) : (
-          <Card className="bg-gradient-to-br from-[#1e1e1e] to-[#2a2a2a] border-gray-700/50">
-            <CardContent className="p-16 text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Search className="h-10 w-10 text-gray-400" />
-              </div>
-              <h3 className="text-2xl font-semibold text-white mb-3">No Analysis Data</h3>
-              <p className="text-gray-400 mb-8 text-lg max-w-md mx-auto">
-                Enter a keyword above and click "Analyze" to view comprehensive market insights and analytics.
-              </p>
-              <Button 
-                onClick={() => setSearchQuery("AI chatbots")}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25"
-              >
-                Try "AI chatbots" as example
-              </Button>
-            </CardContent>
-          </Card>
-        )} 
-
-        {(data.regions.length > 0 || data.topCompetitors.length > 0) && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            {data.regions.length > 0 && (
-              <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/5">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
-                    <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
-                    Regional Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <BarChart data={data.regions} layout="horizontal">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                      <XAxis type="number" stroke="#9CA3AF" tickFormatter={formatCurrency} fontSize={12} />
-                      <YAxis dataKey="region" type="category" stroke="#9CA3AF" width={100} fontSize={12} />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1f2937', 
-                          border: '1px solid #374151',
-                          borderRadius: '12px',
-                          color: 'white',
-                          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                        }}
-                        formatter={(value) => [formatCurrency(value), 'Revenue']}
-                      />
-                      <Bar dataKey="revenue" fill={colors.accent2} radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-
-            {data.topCompetitors.length > 0 && (
-              <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-pink-500/5">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
-                    <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
-                    Market Share Distribution
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <PieChart>
-                      <Pie
-                        data={data.topCompetitors}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={110}
-                        fill="#8884d8"
-                        dataKey="marketShare"
-                        label={({ name, marketShare }) => `${name}: ${marketShare}%`}
-                      >
-                        {data.topCompetitors.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1f2937', 
-                          border: '1px solid #374151',
-                          borderRadius: '12px',
-                          color: 'white',
-                          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                        }}
-                        formatter={(value) => [`${value}%`, 'Market Share']}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}  
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/5">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-white flex items-center text-lg font-semibold">
-                <CheckCircle className="h-6 w-6 text-green-400 mr-3" />
-                Key Performance Indicators
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
-                <span className="text-gray-400 font-medium">Customer Acquisition Cost</span>
-                <span className="text-white font-semibold text-lg">
-                  {data.keyMetrics.customerAcquisitionCost > 0 ? `$${data.keyMetrics.customerAcquisitionCost}` : "No data"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
-                <span className="text-gray-400 font-medium">Lifetime Value</span>
-                <span className="text-white font-semibold text-lg">
-                  {data.keyMetrics.lifetimeValue > 0 ? `$${data.keyMetrics.lifetimeValue}` : "No data"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
-                <span className="text-gray-400 font-medium">Churn Rate</span>
-                <span className="text-white font-semibold text-lg">
-                  {data.keyMetrics.churnRate > 0 ? `${data.keyMetrics.churnRate}%` : "No data"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-gray-400 font-medium">Market Penetration</span>
-                <span className="text-white font-semibold text-lg">
-                  {data.keyMetrics.marketPenetration > 0 ? `${data.keyMetrics.marketPenetration}%` : "No data"}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/5">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-white text-lg font-semibold">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25">
-                Export Report
-              </Button>
-              <Button className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg">
-                Schedule Update
-              </Button>
-              <Button className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/25">
-                Share Dashboard
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-500/5">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-white text-lg font-semibold">Market Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Badge 
-                    variant="outline" 
-                    className={`px-3 py-1 rounded-full font-medium ${data.overview.trend === 'up' ? 'border-green-500/50 text-green-400 bg-green-500/10' : 
-                      data.overview.trend === 'down' ? 'border-red-500/50 text-red-400 bg-red-500/10' : 
-                      'border-yellow-500/50 text-yellow-400 bg-yellow-500/10'}`}
-                  >
-                    {data.overview.trend === 'up' ? '📈 Growing' : 
-                     data.overview.trend === 'down' ? '📉 Declining' : '📊 Stable'}
-                  </Badge>
-                  <span className="text-sm text-gray-400 font-medium">Market Trend</span>
+        <>
+          {error && (
+            <Card className="bg-gradient-to-br from-red-900/40 to-red-800/20 border-red-700/50">
+              <CardContent className="p-8 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-red-500/20 to-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <AlertTriangle className="h-10 w-10 text-red-400" />
                 </div>
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  {data.overview.summary}
+                <h3 className="text-2xl font-semibold text-white mb-3">No Analysis Data</h3>
+                <p className="text-gray-400 mb-8 text-lg max-w-md mx-auto">
+                  {error}
                 </p>
-                <div className="flex items-center justify-between pt-3 border-t border-gray-700/50">
-                  <span className="text-gray-400 font-medium">Growth Rate</span>
-                  <span className={`font-bold text-lg ${
-                    data.overview.growthRate.startsWith('+') ? 'text-green-400' : 
-                    data.overview.growthRate.startsWith('-') ? 'text-red-400' : 'text-gray-400'
-                  }`}>
-                    {data.overview.growthRate !== "0%" ? data.overview.growthRate : "No data"}
-                  </span>
+              </CardContent>
+            </Card>
+          )}
+          {!error && data && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <KPICard
+                  title="Market Size"
+                  value={data.overview.marketSize ? `$${data.overview.marketSize}B` : "No data"}
+                  change={data.overview.growthRate !== "0%" ? data.overview.growthRate : null}
+                  icon={Globe}
+                  color={colors.primary}
+                />
+                <KPICard
+                  title="Monthly Revenue"
+                  value={data.monthlyData.length > 0 ? formatCurrency(data.monthlyData[data.monthlyData.length - 1]?.revenue || 0) : "No data"}
+                  change={data.monthlyData.length > 0 ? "+8.2%" : null}
+                  icon={DollarSign}
+                  color={colors.success}
+                />
+                <KPICard
+                  title="Active Users"
+                  value={data.monthlyData.length > 0 ? formatNumber(data.monthlyData[data.monthlyData.length - 1]?.users || 0) : "No data"}
+                  change={data.monthlyData.length > 0 ? "+12.3%" : null}
+                  icon={Users}
+                  color={colors.accent2}
+                />
+                <KPICard
+                  title="Conversion Rate"
+                  value={data.keyMetrics.conversionRate > 0 ? `${data.keyMetrics.conversionRate}%` : "No data"}
+                  change={data.keyMetrics.conversionRate > 0 ? "+0.3%" : null}
+                  icon={Target}
+                  color={colors.accent3}
+                />
+              </div>       
+              {data.monthlyData.length > 0 ? (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                  <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/5">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        Revenue vs Expenses Trend
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={320}>
+                        <AreaChart data={data.monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                          <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
+                          <YAxis stroke="#9CA3AF" tickFormatter={formatCurrency} fontSize={12} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: '#1f2937', 
+                              border: '1px solid #374151',
+                              borderRadius: '12px',
+                              color: 'white',
+                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                            }}
+                            formatter={(value) => [formatCurrency(value), '']}
+                          />
+                          <Legend />
+                          <Area
+                            type="monotone"
+                            dataKey="revenue"
+                            stackId="1"
+                            stroke={colors.primary}
+                            fill={colors.primary}
+                            fillOpacity={0.7}
+                            name="Revenue"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="expenses"
+                            stackId="2"
+                            stroke={colors.warning}
+                            fill={colors.warning}
+                            fillOpacity={0.7}
+                            name="Expenses"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/5">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        User Growth Trend
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={320}>
+                        <LineChart data={data.monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                          <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
+                          <YAxis stroke="#9CA3AF" tickFormatter={formatNumber} fontSize={12} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: '#1f2937', 
+                              border: '1px solid #374151',
+                              borderRadius: '12px',
+                              color: 'white',
+                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                            }}
+                            formatter={(value) => [formatNumber(value), 'Users']}
+                          />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="users"
+                            stroke={colors.accent2}
+                            strokeWidth={4}
+                            dot={{ fill: colors.accent2, strokeWidth: 3, r: 5 }}
+                            name="Active Users"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  {data.channels.length > 0 && (
+                    <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/5">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                          Traffic Sources
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={320}>
+                          <PieChart>
+                            <Pie
+                              data={data.channels}
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={110}
+                              fill="#8884d8"
+                              dataKey="value"
+                              label={({ name, value }) => `${name}: ${value}%`}
+                            >
+                              {data.channels.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: '#1f2937', 
+                                border: '1px solid #374151',
+                                borderRadius: '12px',
+                                color: 'white',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                              }}
+                              formatter={(value) => [`${value}%`, 'Share']}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {data.performanceMetrics.length > 0 && (
+                    <Card className="bg-transparent border-gray-700/50 hover:border-orange-400/60 transition-all duration-300 shadow-xl hover:shadow-orange-400/10 rounded-2xl backdrop-blur-lg">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
+                          <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                          Performance Metrics
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={320}>
+                          <BarChart data={data.performanceMetrics} barCategoryGap={24}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.15} />
+                            <XAxis dataKey="metric" stroke="#9CA3AF" fontSize={14} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#9CA3AF" fontSize={14} tickLine={false} axisLine={false} />
+                            <Tooltip 
+                              contentStyle={{ 
+                                background: 'rgba(30,41,59,0.85)',
+                                border: '1px solid #fbbf24',
+                                borderRadius: '16px',
+                                color: 'white',
+                                boxShadow: '0 8px 32px 0 rgba(251,191,36,0.15)'
+                              }}
+                            />
+                            <Legend iconType="circle" />
+                            <Bar dataKey="value" fill="#fbbf24" name="Actual" radius={[8, 8, 0, 0]} />
+                            <Bar dataKey="target" fill="#f472b6" name="Target" radius={[8, 8, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
+              )}
+
+              {(data.regions.length > 0 || data.topCompetitors.length > 0) && (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
+                  {data.regions.length > 0 && (
+                    <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/5">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
+                          <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+                          Regional Performance
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={320}>
+                          <BarChart data={data.regions} layout="horizontal">
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                            <XAxis type="number" stroke="#9CA3AF" tickFormatter={formatCurrency} fontSize={12} />
+                            <YAxis dataKey="region" type="category" stroke="#9CA3AF" width={100} fontSize={12} />
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: '#1f2937', 
+                                border: '1px solid #374151',
+                                borderRadius: '12px',
+                                color: 'white',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                              }}
+                              formatter={(value) => [formatCurrency(value), 'Revenue']}
+                            />
+                            <Bar dataKey="revenue" fill={colors.accent2} radius={[0, 4, 4, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {data.topCompetitors.length > 0 && (
+                    <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-pink-500/5">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
+                          <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
+                          Market Share Distribution
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={320}>
+                          <PieChart>
+                            <Pie
+                              data={data.topCompetitors}
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={110}
+                              fill="#8884d8"
+                              dataKey="marketShare"
+                              label={({ name, marketShare }) => `${name}: ${marketShare}%`}
+                            >
+                              {data.topCompetitors.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: '#1f2937', 
+                                border: '1px solid #374151',
+                                borderRadius: '12px',
+                                color: 'white',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                              }}
+                              formatter={(value) => [`${value}%`, 'Market Share']}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}  
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/5">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-white flex items-center text-lg font-semibold">
+                      <CheckCircle className="h-6 w-6 text-green-400 mr-3" />
+                      Key Performance Indicators
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
+                      <span className="text-gray-400 font-medium">Customer Acquisition Cost</span>
+                      <span className="text-white font-semibold text-lg">
+                        {data.keyMetrics.customerAcquisitionCost > 0 ? `$${data.keyMetrics.customerAcquisitionCost}` : "No data"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
+                      <span className="text-gray-400 font-medium">Lifetime Value</span>
+                      <span className="text-white font-semibold text-lg">
+                        {data.keyMetrics.lifetimeValue > 0 ? `$${data.keyMetrics.lifetimeValue}` : "No data"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
+                      <span className="text-gray-400 font-medium">Churn Rate</span>
+                      <span className="text-white font-semibold text-lg">
+                        {data.keyMetrics.churnRate > 0 ? `${data.keyMetrics.churnRate}%` : "No data"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-400 font-medium">Market Penetration</span>
+                      <span className="text-white font-semibold text-lg">
+                        {data.keyMetrics.marketPenetration > 0 ? `${data.keyMetrics.marketPenetration}%` : "No data"}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/5">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-white text-lg font-semibold">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25">
+                      Export Report
+                    </Button>
+                    <Button className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg">
+                      Schedule Update
+                    </Button>
+                    <Button className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/25">
+                      Share Dashboard
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-transparent border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-500/5">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-white text-lg font-semibold">Market Overview</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Badge 
+                          variant="outline" 
+                          className={`px-3 py-1 rounded-full font-medium ${data.overview.trend === 'up' ? 'border-green-500/50 text-green-400 bg-green-500/10' : 
+                            data.overview.trend === 'down' ? 'border-red-500/50 text-red-400 bg-red-500/10' : 
+                            'border-yellow-500/50 text-yellow-400 bg-yellow-500/10'}`}
+                        >
+                          {data.overview.trend === 'up' ? '📈 Growing' : 
+                           data.overview.trend === 'down' ? '📉 Declining' : '📊 Stable'}
+                        </Badge>
+                        <span className="text-sm text-gray-400 font-medium">Market Trend</span>
+                      </div>
+                      <p className="text-sm text-gray-300 leading-relaxed">
+                        {data.overview.summary}
+                      </p>
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-700/50">
+                        <span className="text-gray-400 font-medium">Growth Rate</span>
+                        <span className={`font-bold text-lg ${
+                          data.overview.growthRate.startsWith('+') ? 'text-green-400' : 
+                          data.overview.growthRate.startsWith('-') ? 'text-red-400' : 'text-gray-400'
+                        }`}>
+                          {data.overview.growthRate !== "0%" ? data.overview.growthRate : "No data"}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>        </div>
+            </>
+          )}
+          {!error && !data && (
+            <Card className="bg-gradient-to-br from-[#1e1e1e] to-[#2a2a2a] border-gray-700/50">
+              <CardContent className="p-16 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Search className="h-10 w-10 text-gray-400" />
+                </div>
+                <h3 className="text-2xl font-semibold text-white mb-3">No Analysis Data</h3>
+                <p className="text-gray-400 mb-8 text-lg max-w-md mx-auto">
+                  Enter a keyword above and click "Analyze" to view comprehensive market insights and analytics.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </>
       </div>
     </div>
-  );
-}
-
-// Loading component for Suspense fallback
-function DashboardLoading() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0f0f0f] to-[#1a1a1a] text-white flex items-center justify-center">
-      <div className="text-center">
-        <Loader2 className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
-        <p className="text-gray-400 text-lg">Loading Dashboard...</p>
-      </div>
-    </div>
-  );
-}
-
-// Main export with Suspense boundary
-export default function Dashboard() {
-  return (
-    <Suspense fallback={<DashboardLoading />}>
-      <DashboardContent />
-    </Suspense>
   );
 }

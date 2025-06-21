@@ -1,138 +1,60 @@
-import OpenAI from 'openai';
+// import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// NOTE: Set GEMINI_API_KEY in your environment variables
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 export async function POST(request) {
+  let keyword = 'unknown';
   try {
-    const { keyword } = await request.json();
+    const body = await request.json();
+    keyword = body.keyword;
 
     if (!keyword) {
       return NextResponse.json(
         { error: 'Keyword is required' },
         { status: 400 }
       );
-    }    const prompt = `
-    Analyze the market for "${keyword}" and provide a comprehensive business intelligence report. 
-    Return the analysis in the following JSON format with realistic data for dashboard charts:
+    }
+    const prompt = `You are a business intelligence analyst. Analyze the market for the keyword: "${keyword}".\nResearch and provide a comprehensive, realistic, and up-to-date business intelligence report in valid JSON only, with no markdown or code block formatting.\n\nThe JSON must include:\n- overview: { marketSize (number, billions), growthRate (string, e.g. '+8.5%'), trend ('up'|'down'|'stable'), summary (string) }\n- monthlyData: [{ month, revenue, users, expenses, engagement }]\n- demographics: [{ age, percentage, value, color }]\n- topCompetitors: [{ name, marketShare, revenue, color }]\n- channels: [{ name, value, color }]\n- regions: [{ region, revenue, growth, users }]\n- performanceMetrics: [{ metric, value, target, unit }]\n- trends: [{ trend, impact, description, direction }]\n- opportunities: [{ opportunity, potential, description, timeline }]\n- risks: [{ risk, severity, description, probability }]\n- keyMetrics: { customerAcquisitionCost, lifetimeValue, churnRate, conversionRate, marketPenetration, customerSatisfaction }\n- chartData: { areaChart, lineChart, pieChart, barChart, competitorPieChart, regionalBarChart }\n\n**All numbers and facts must be plausible and based on real-world market knowledge as of 2024.**\n**Return only the JSON object, no markdown, no commentary, no code block.**`;
 
-    {
-      "overview": {
-        "marketSize": "number in billions",
-        "growthRate": "percentage with + or - sign",
-        "trend": "up/down/stable",
-        "summary": "brief market summary"
-      },
-      "monthlyData": [
-        {"month": "Jan", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Feb", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Mar", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Apr", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "May", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Jun", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Jul", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Aug", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Sep", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Oct", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Nov", "revenue": number, "users": number, "expenses": number, "engagement": number},
-        {"month": "Dec", "revenue": number, "users": number, "expenses": number, "engagement": number}
-      ],
-      "demographics": [
-        {"age": "18-25", "percentage": number, "value": number, "color": "#8B5CF6"},
-        {"age": "26-35", "percentage": number, "value": number, "color": "#06D6A0"},
-        {"age": "36-45", "percentage": number, "value": number, "color": "#FFD60A"},
-        {"age": "46-55", "percentage": number, "value": number, "color": "#F72585"},
-        {"age": "55+", "percentage": number, "value": number, "color": "#4CC9F0"}
-      ],
-      "topCompetitors": [
-        {"name": "Company 1", "marketShare": number, "revenue": number, "color": "#8B5CF6"},
-        {"name": "Company 2", "marketShare": number, "revenue": number, "color": "#06D6A0"},
-        {"name": "Company 3", "marketShare": number, "revenue": number, "color": "#FFD60A"},
-        {"name": "Company 4", "marketShare": number, "revenue": number, "color": "#F72585"}
-      ],
-      "channels": [
-        {"name": "Organic Search", "value": number, "color": "#8B5CF6"},
-        {"name": "Direct", "value": number, "color": "#06D6A0"},
-        {"name": "Social Media", "value": number, "color": "#FFD60A"},
-        {"name": "Referral", "value": number, "color": "#F72585"},
-        {"name": "Email", "value": number, "color": "#4CC9F0"}
-      ],
-      "regions": [
-        {"region": "North America", "revenue": number, "growth": number, "users": number},
-        {"region": "Europe", "revenue": number, "growth": number, "users": number},
-        {"region": "Asia Pacific", "revenue": number, "growth": number, "users": number},
-        {"region": "Latin America", "revenue": number, "growth": number, "users": number},
-        {"region": "Middle East", "revenue": number, "growth": number, "users": number}
-      ],
-      "performanceMetrics": [
-        {"metric": "CAC", "value": number, "target": number, "unit": "$"},
-        {"metric": "LTV", "value": number, "target": number, "unit": "$"},
-        {"metric": "Churn Rate", "value": number, "target": number, "unit": "%"},
-        {"metric": "Conversion", "value": number, "target": number, "unit": "%"}
-      ],
-      "trends": [
-        {"trend": "trend name", "impact": "high/medium/low", "description": "brief description", "direction": "positive/negative/neutral"}
-      ],
-      "opportunities": [
-        {"opportunity": "opportunity name", "potential": "high/medium/low", "description": "brief description", "timeline": "short/medium/long"}
-      ],
-      "risks": [
-        {"risk": "risk name", "severity": "high/medium/low", "description": "brief description", "probability": "high/medium/low"}
-      ],
-      "keyMetrics": {
-        "customerAcquisitionCost": number,
-        "lifetimeValue": number,
-        "churnRate": number,
-        "conversionRate": number,
-        "marketPenetration": number,
-        "customerSatisfaction": number
-      },
-      "chartData": {
-        "areaChart": "monthlyData for Area Chart (revenue vs expenses)",
-        "lineChart": "monthlyData for Line Chart (user growth)",
-        "pieChart": "channels for Pie Chart (traffic sources)",
-        "barChart": "performanceMetrics for Bar Chart (metrics vs targets)",
-        "competitorPieChart": "topCompetitors for Pie Chart (market share)",
-        "regionalBarChart": "regions for Bar Chart (regional performance)"
+    // Call Gemini API
+    const geminiRes = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!geminiRes.ok) throw new Error('Gemini API error');
+    const geminiData = await geminiRes.json();
+    let responseText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    // Remove Markdown code block markers if present
+    if (responseText) {
+      responseText = responseText.trim();
+      if (responseText.startsWith('```')) {
+        responseText = responseText.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '').trim();
       }
     }
 
-    Make sure all numbers are realistic and based on actual market research knowledge. 
-    Provide data that shows meaningful trends and insights for business decision-making.
-    Ensure revenue data shows growth trends and expenses are typically 60-70% of revenue.
-    User growth should show consistent upward trend with some seasonal variations.
-    Return ONLY the JSON object, no additional text or formatting.
-    `;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: "You are a market research analyst providing comprehensive business intelligence. Always respond with valid JSON only."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    });
-
-    const responseContent = completion.choices[0].message.content;
-    
-    // Parse the JSON response
     let analysisData;
     try {
-      analysisData = JSON.parse(responseContent);
+      analysisData = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response:', parseError);
-      // Fallback to mock data if parsing fails
-      analysisData = generateMockData(keyword);
+      console.error('Failed to parse Gemini response:', parseError, responseText);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to fetch analysis from Gemini',
+      }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -144,23 +66,10 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('API Error:', error);
-    
-    let fallbackKeyword = 'unknown';
-    try {
-      const { keyword: requestKeyword } = await request.json();
-      fallbackKeyword = requestKeyword || 'unknown';
-    } catch (jsonError) {
-      console.error('Error parsing request for fallback:', jsonError);
-    }
-    
-    const mockData = generateMockData(fallbackKeyword);
-    
     return NextResponse.json({
-      success: true,
-      keyword: fallbackKeyword,
-      timestamp: new Date().toISOString(),
-      data: mockData
-    });
+      success: false,
+      error: 'Failed to fetch analysis',
+    }, { status: 500 });
   }
 }
 
