@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { 
   AreaChart, 
@@ -75,7 +75,7 @@ const defaultData = {
   }
 };
 
-export default function Dashboard() {
+function DashboardContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState(defaultData);
   const [loading, setLoading] = useState(false);
@@ -636,9 +636,29 @@ export default function Dashboard() {
                 </div>
               </div>
             </CardContent>
-          </Card>
-        </div>
+          </Card>        </div>
       </div>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function DashboardLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0f0f0f] to-[#1a1a1a] text-white flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
+        <p className="text-gray-400 text-lg">Loading Dashboard...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main export with Suspense boundary
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardContent />
+    </Suspense>
   );
 }
