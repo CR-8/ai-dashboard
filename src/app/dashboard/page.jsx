@@ -66,7 +66,7 @@ export default function ProfessionalDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   // Enhanced mock data for demonstration
-  const mockData = [{
+  const mockData = {
     companyName: "Apple Inc.",
     symbol: "AAPL", 
     currentPrice: 198.75,
@@ -134,40 +134,80 @@ export default function ProfessionalDashboard() {
       { name: 'SMA 50', value: 189.2, signal: 'bullish' },
       { name: 'SMA 200', value: 172.8, signal: 'bullish' },
     ]
-  },
-]
-    const handleAnalyze = async (company = searchQuery) => {
-      if (!company.trim()) return;
-      setLoading(true);
-      setCurrentCompany(company);
+  };  const handleAnalyze = async (company = searchQuery) => {
+    if (!company.trim()) return;
+    
+    setLoading(true);
+    setCurrentCompany(company);
+
+    try {
+      console.log(`Analyzing ${company}...`);
       
-      // Simulate API call with realistic delay
-      setTimeout(() => {
-        setCompanyData({...mockData, symbol: company.toUpperCase()});
-        setLoading(false);
-      }, 1500);
-    };
-  const handleAnalyze = async (company = searchQuery) => {
-      if (!company.trim()) return;
-      setLoading(true);
-      setCurrentCompany(company);
+      const response = await fetch('/api/analyze-company', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbol: company.toUpperCase() }),
+      });
 
-      // Simulate API call with realistic delay
-      setTimeout(() => {
-        setCompanyData({...mockData, symbol: company.toUpperCase()});
-        setLoading(false);
-      }, 1500);
-    };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    const handleRefresh = () => {
-      setRefreshing(true);
-      setTimeout(() => {
-        setRefreshing(false);
-        if (companyData) {
-          setCompanyData({...companyData, lastUpdated: new Date().toISOString()});
+      const data = await response.json();
+      
+      // Handle API errors gracefully
+      if (data.error) {
+        console.warn('API returned error:', data.error);
+        if (data.fallback && data.data) {
+          setCompanyData({ ...mockData, ...data.data, symbol: company.toUpperCase() });
+        } else {
+          setCompanyData({ ...mockData, symbol: company.toUpperCase() });
         }
-      }, 1000);
-    };
+      } else {
+        // Successful API response
+        console.log('Successfully received real data for:', company);
+        setCompanyData(data);
+      }
+    } catch (error) {
+      console.error('Error analyzing company:', error);
+      // Fallback to mock data with updated symbol
+      setCompanyData({ ...mockData, symbol: company.toUpperCase() });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!currentCompany) return;
+    
+    setRefreshing(true);
+    
+    try {
+      console.log(`Refreshing data for ${currentCompany}...`);
+      
+      const response = await fetch('/api/analyze-company', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbol: currentCompany.toUpperCase() }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (!data.error) {
+          setCompanyData(data);
+          console.log('Data refreshed successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -721,6 +761,140 @@ export default function ProfessionalDashboard() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* News and Insights Section */}
+              {displayData.news && displayData.news.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Latest News */}
+                  <Card className="bg-zinc-950 border-zinc-800 lg:col-span-8">
+                    <CardHeader>
+                      <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Latest News</CardTitle>
+                      <CardDescription className="font-mono text-zinc-400">Recent developments and market sentiment</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {displayData.news.slice(0, 3).map((article, index) => (
+                        <div key={index} className="border-l-2 border-zinc-700 pl-4 py-2">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="text-sm font-mono text-zinc-200 mb-1">{article.title}</h4>
+                              <p className="text-xs text-zinc-400 mb-2 line-clamp-2">{article.description}</p>
+                              <div className="flex items-center gap-2 text-xs text-zinc-500">
+                                <span>{article.source}</span>
+                                <Separator orientation="vertical" className="h-3" />
+                                <span>{getTimeAgo(article.publishedAt)}</span>
+                                {article.sentiment && (
+                                  <>
+                                    <Separator orientation="vertical" className="h-3" />
+                                    <Badge 
+                                      variant={article.sentiment === 'positive' ? 'default' : article.sentiment === 'negative' ? 'destructive' : 'secondary'}
+                                      className="text-xs"
+                                    >
+                                      {article.sentiment}
+                                    </Badge>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            {article.url !== '#' && (
+                              <Button variant="ghost" size="sm" className="ml-2">
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  {/* AI Insights */}
+                  <Card className="bg-zinc-950 border-zinc-800 lg:col-span-4">
+                    <CardHeader>
+                      <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        AI Insights
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {displayData.recommendation && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-mono text-zinc-400">Recommendation</span>
+                            <Badge 
+                              variant={displayData.recommendation === 'BUY' ? 'default' : displayData.recommendation === 'SELL' ? 'destructive' : 'secondary'}
+                              className="font-mono"
+                            >
+                              {displayData.recommendation}
+                            </Badge>
+                          </div>
+                          {displayData.targetPrice && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-mono text-zinc-400">Target Price</span>
+                              <span className="text-sm font-mono text-white">${displayData.targetPrice}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {displayData.keyInsights && (
+                        <div className="space-y-2">
+                          <span className="text-xs font-mono text-zinc-400">Key Insights</span>
+                          {displayData.keyInsights.slice(0, 3).map((insight, index) => (
+                            <div key={index} className="text-xs text-zinc-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                              <span>{insight}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {displayData.risks && (
+                        <div className="space-y-2">
+                          <span className="text-xs font-mono text-zinc-400">Risk Factors</span>
+                          {displayData.risks.slice(0, 3).map((risk, index) => (
+                            <div key={index} className="text-xs text-zinc-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                              <span>{risk}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Data Quality Indicator */}
+              {displayData.dataQuality && (
+                <Card className="bg-zinc-950 border-zinc-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Signal className="h-4 w-4 text-green-400" />
+                        <span className="text-sm font-mono text-zinc-300">Data Quality</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-zinc-500">
+                        <div className="flex items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full ${displayData.dataQuality.realTimeData ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
+                          Real-time
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full ${displayData.dataQuality.newsIntegration ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
+                          News
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full ${displayData.dataQuality.aiAnalysis ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
+                          AI Analysis
+                        </div>
+                        {displayData.dataQuality.sources && (
+                          <span className="text-zinc-400">
+                            {displayData.dataQuality.sources.length} sources
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Action Buttons */}
               <div className="flex justify-center gap-3 pt-6">
