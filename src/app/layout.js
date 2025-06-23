@@ -20,12 +20,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-gradient-to-br from-gray-950 to-black`}
-      >
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-background text-foreground min-h-screen">
         <Navbar />
-        <main className="flex-grow pt-20">
+        <main className="flex-grow">
           {children}
         </main>
         <Footer />
