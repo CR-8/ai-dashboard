@@ -304,14 +304,19 @@ async function fetchRealTimeQuote(symbol) {
       low: data.l || 0,
       open: data.o || 0,
       previousClose: data.pc || 0,
-    };
-  } catch (error) {
+    };  } catch (error) {
     console.error('Error fetching real-time quote:', error);
+    const basePrice = getBasePrice(symbol);
+    const change = (Math.random() - 0.5) * basePrice * 0.05; // Up to 5% change
+    
     return {
-      currentPrice: 150 + Math.random() * 100,
-      change: (Math.random() - 0.5) * 10,
-      changePercent: (Math.random() - 0.5) * 5,
-      high: 160, low: 140, open: 155, previousClose: 152,
+      currentPrice: Math.round(basePrice * 100) / 100,
+      change: Math.round(change * 100) / 100,
+      changePercent: Math.round((change / basePrice) * 100 * 100) / 100,
+      high: Math.round(basePrice * 1.03 * 100) / 100,
+      low: Math.round(basePrice * 0.97 * 100) / 100,
+      open: Math.round(basePrice * (0.98 + Math.random() * 0.04) * 100) / 100,
+      previousClose: Math.round((basePrice - change) * 100) / 100,
     };
   }
 }
@@ -370,37 +375,42 @@ async function fetchCompetitorAnalysis(sector, symbol) {
   return competitorMap[sector] || competitorMap['Technology'];
 }
 
-// Fallback data generators
+// Improved fallback data generators with realistic values
 function generateFallbackStockData(symbol) {
+  const basePrice = getBasePrice(symbol);
   const data = [];
-  const basePrice = 150 + Math.random() * 50;
   
-  for (let i = 0; i < 180; i++) {
+  for (let i = 0; i < 30; i++) {
     const date = new Date();
-    date.setDate(date.getDate() - (180 - i));
+    date.setDate(date.getDate() - (30 - i));
+    
+    const variation = Math.sin(i / 10) * 0.1 + (Math.random() - 0.5) * 0.05;
+    const price = Math.round((basePrice * (1 + variation)) * 100) / 100;
     
     data.push({
       date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      price: Math.round((basePrice + Math.sin(i / 30) * 20 + (Math.random() - 0.5) * 10) * 100) / 100,
-      volume: Math.round((2 + Math.random() * 2) * 100) / 100,
-      high: 0,
-      low: 0,
-      open: 0,
+      price: price,
+      volume: Math.round((2 + Math.random() * 3) * 100) / 100,
+      high: Math.round(price * 1.02 * 100) / 100,
+      low: Math.round(price * 0.98 * 100) / 100,
+      open: Math.round(price * (0.99 + Math.random() * 0.02) * 100) / 100,
     });
   }
   
-  return data.slice(-30); // Return last 30 days
+  return data.slice(-6); // Return last 6 data points
 }
 
 function generateFallbackCompanyData(symbol) {
+  const companyInfo = getCompanyInfo(symbol);
+  
   return {
-    companyName: `${symbol} Inc.`,
+    companyName: companyInfo.name,
     symbol: symbol,
-    sector: 'Technology',
-    marketCap: 3.5 + Math.random() * 2,
-    peRatio: 25 + Math.random() * 10,
-    revenue: 300 + Math.random() * 200,
-    description: `${symbol} is a leading technology company.`,
+    sector: companyInfo.sector,
+    marketCap: companyInfo.marketCap,
+    peRatio: Math.round((20 + Math.random() * 20) * 10) / 10,
+    revenue: Math.round(companyInfo.marketCap * (0.8 + Math.random() * 0.4)),
+    description: `${companyInfo.name} is a leading company in the ${companyInfo.sector.toLowerCase()} sector.`,
     exchange: 'NASDAQ',
     currency: 'USD',
     country: 'USA',
@@ -411,10 +421,45 @@ function generateFallbackFinancialData() {
   const quarters = ['Q1 23', 'Q2 23', 'Q3 23', 'Q4 23', 'Q1 24', 'Q2 24'];
   return quarters.map((quarter, index) => ({
     quarter,
-    revenue: Math.round((25 + index * 3 + Math.random() * 5) * 10) / 10,
-    profit: Math.round((6 + index * 1.5 + Math.random() * 2) * 10) / 10,
-    eps: Math.round((1.2 + index * 0.3 + Math.random() * 0.3) * 100) / 100,
+    revenue: Math.round((25 + index * 4 + Math.random() * 8) * 10) / 10,
+    profit: Math.round((6 + index * 2 + Math.random() * 3) * 10) / 10,
+    eps: Math.round((1.2 + index * 0.4 + Math.random() * 0.5) * 100) / 100,
   }));
+}
+
+// Helper functions for realistic company data
+function getCompanyInfo(symbol) {
+  const companies = {
+    'AAPL': { name: 'Apple Inc.', sector: 'Technology', marketCap: 3.5 },
+    'MSFT': { name: 'Microsoft Corporation', sector: 'Technology', marketCap: 3.2 },
+    'GOOGL': { name: 'Alphabet Inc.', sector: 'Technology', marketCap: 2.1 },
+    'TSLA': { name: 'Tesla Inc.', sector: 'Automotive', marketCap: 0.8 },
+    'AMZN': { name: 'Amazon.com Inc.', sector: 'E-commerce', marketCap: 1.7 },
+    'META': { name: 'Meta Platforms Inc.', sector: 'Technology', marketCap: 1.3 },
+    'NVDA': { name: 'NVIDIA Corporation', sector: 'Technology', marketCap: 2.9 },
+    'NFLX': { name: 'Netflix Inc.', sector: 'Entertainment', marketCap: 0.2 },
+  };
+  
+  return companies[symbol] || { 
+    name: `${symbol} Inc.`, 
+    sector: 'Technology', 
+    marketCap: 0.5 + Math.random() * 2 
+  };
+}
+
+function getBasePrice(symbol) {
+  const prices = {
+    'AAPL': 198,
+    'MSFT': 415,
+    'GOOGL': 173,
+    'TSLA': 248,
+    'AMZN': 186,
+    'META': 520,
+    'NVDA': 875,
+    'NFLX': 647,
+  };
+  
+  return prices[symbol] || (150 + Math.random() * 200);
 }
 
 // Enhanced AI analysis with news sentiment
@@ -509,43 +554,44 @@ async function analyzeWithAI(companyData, marketData, newsData = []) {
 
 function generateFallbackAIAnalysis(marketData = {}) {
   const currentPrice = marketData.currentPrice || 150;
+  const baseVolatility = 10 + Math.random() * 15;
   
   return {
-    volatility: Math.round((10 + Math.random() * 10) * 10) / 10,
-    beta: Math.round((0.8 + Math.random() * 0.8) * 100) / 100,
-    confidence: Math.round(75 + Math.random() * 20),
+    volatility: Math.round(baseVolatility * 10) / 10,
+    beta: Math.round((0.7 + Math.random() * 1.1) * 100) / 100,
+    confidence: Math.round(70 + Math.random() * 25),
     recommendation: ['BUY', 'HOLD', 'OVERWEIGHT'][Math.floor(Math.random() * 3)],
-    targetPrice: Math.round(currentPrice * (1.1 + Math.random() * 0.2)),
+    targetPrice: Math.round(currentPrice * (1.05 + Math.random() * 0.25)),
     technicalIndicators: [
-      { name: 'RSI', value: Math.round(45 + Math.random() * 30), signal: ['bullish', 'neutral'][Math.floor(Math.random() * 2)] },
-      { name: 'MACD', value: Math.round((Math.random() - 0.5) * 5 * 100) / 100, signal: 'bullish' },
-      { name: 'SMA 50', value: Math.round(currentPrice * (0.95 + Math.random() * 0.1)), signal: 'bullish' },
-      { name: 'SMA 200', value: Math.round(currentPrice * (0.85 + Math.random() * 0.1)), signal: 'bullish' },
+      { name: 'RSI', value: Math.round(30 + Math.random() * 40), signal: ['bullish', 'neutral', 'bearish'][Math.floor(Math.random() * 3)] },
+      { name: 'MACD', value: Math.round((Math.random() - 0.5) * 8 * 100) / 100, signal: ['bullish', 'neutral'][Math.floor(Math.random() * 2)] },
+      { name: 'SMA 50', value: Math.round(currentPrice * (0.92 + Math.random() * 0.16)), signal: currentPrice > (currentPrice * 0.98) ? 'bullish' : 'bearish' },
+      { name: 'SMA 200', value: Math.round(currentPrice * (0.85 + Math.random() * 0.15)), signal: 'bullish' },
     ],
     analystRatings: [
-      { firm: 'Goldman Sachs', rating: 'BUY', target: Math.round(currentPrice * 1.15), confidence: 92 },
-      { firm: 'Morgan Stanley', rating: 'OVERWEIGHT', target: Math.round(currentPrice * 1.12), confidence: 88 },
-      { firm: 'JP Morgan', rating: 'NEUTRAL', target: Math.round(currentPrice * 1.05), confidence: 85 },
-      { firm: 'Bank of America', rating: 'BUY', target: Math.round(currentPrice * 1.18), confidence: 90 },
-      { firm: 'Credit Suisse', rating: 'OUTPERFORM', target: Math.round(currentPrice * 1.1), confidence: 87 },
+      { firm: 'Goldman Sachs', rating: ['BUY', 'OVERWEIGHT'][Math.floor(Math.random() * 2)], target: Math.round(currentPrice * (1.1 + Math.random() * 0.15)), confidence: 88 + Math.floor(Math.random() * 8) },
+      { firm: 'Morgan Stanley', rating: ['BUY', 'OVERWEIGHT', 'NEUTRAL'][Math.floor(Math.random() * 3)], target: Math.round(currentPrice * (1.08 + Math.random() * 0.12)), confidence: 85 + Math.floor(Math.random() * 10) },
+      { firm: 'JP Morgan', rating: ['NEUTRAL', 'BUY'][Math.floor(Math.random() * 2)], target: Math.round(currentPrice * (1.02 + Math.random() * 0.08)), confidence: 82 + Math.floor(Math.random() * 8) },
+      { firm: 'Bank of America', rating: ['BUY', 'OVERWEIGHT'][Math.floor(Math.random() * 2)], target: Math.round(currentPrice * (1.12 + Math.random() * 0.18)), confidence: 87 + Math.floor(Math.random() * 8) },
+      { firm: 'Credit Suisse', rating: ['OUTPERFORM', 'BUY'][Math.floor(Math.random() * 2)], target: Math.round(currentPrice * (1.05 + Math.random() * 0.15)), confidence: 84 + Math.floor(Math.random() * 8) },
     ],
     riskMetrics: {
-      volatility: Math.round((10 + Math.random() * 10) * 10) / 10,
-      beta: Math.round((0.8 + Math.random() * 0.8) * 100) / 100,
-      sharpe: Math.round((1.2 + Math.random() * 0.6) * 100) / 100,
-      maxDrawdown: Math.round((5 + Math.random() * 10) * 10) / 10,
-      var95: Math.round((3 + Math.random() * 5) * 10) / 10,
+      volatility: baseVolatility,
+      beta: Math.round((0.7 + Math.random() * 1.1) * 100) / 100,
+      sharpe: Math.round((0.8 + Math.random() * 1.2) * 100) / 100,
+      maxDrawdown: Math.round((8 + Math.random() * 12) * 10) / 10,
+      var95: Math.round((4 + Math.random() * 6) * 10) / 10,
     },
     newsSentiment: ['positive', 'neutral', 'negative'][Math.floor(Math.random() * 3)],
     keyInsights: [
-      'Strong fundamentals with consistent growth',
-      'Market position remains competitive',
-      'Positive outlook for next quarter'
+      'Strong market position with consistent performance',
+      'Favorable analyst coverage and price targets',
+      'Technical indicators show mixed but generally positive signals'
     ],
     risks: [
-      'Market volatility concerns',
-      'Regulatory challenges in key markets',
-      'Competition from emerging players'
+      'Market volatility remains a key concern',
+      'Sector rotation could impact near-term performance',
+      'Macroeconomic headwinds may affect growth'
     ]
   };
 }
@@ -602,13 +648,12 @@ export async function POST(request) {
 
     // Fetch data from multiple sources in parallel
     console.log('Fetching data from multiple sources...');
-    
-    const dataPromises = [
+      const dataPromises = [
       fetchCompanyOverview(symbolVariants.ALPHA).catch(e => {
         console.warn('Company overview failed:', e.message);
         return generateFallbackCompanyData(normalizedSymbol);
       }),
-      fetchMarketData(symbolVariants.ALPHA).catch(e => {
+      fetchStockData(symbolVariants.ALPHA).catch(e => {
         console.warn('Stock data failed:', e.message);
         return generateFallbackStockData(normalizedSymbol);
       }),

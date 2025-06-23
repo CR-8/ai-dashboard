@@ -348,19 +348,29 @@ export default function ProfessionalDashboard() {
 
                 {/* Quick Access Symbols */}
                 <div className="flex flex-wrap gap-2">
-                  {['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN', 'META', 'NVDA', 'NFLX'].map((symbol) => (
+                  {[
+                    { symbol: 'AAPL', name: 'Apple' },
+                    { symbol: 'MSFT', name: 'Microsoft' },
+                    { symbol: 'GOOGL', name: 'Google' },
+                    { symbol: 'TSLA', name: 'Tesla' },
+                    { symbol: 'AMZN', name: 'Amazon' },
+                    { symbol: 'META', name: 'Meta' },
+                    { symbol: 'NVDA', name: 'NVIDIA' },
+                    { symbol: 'NFLX', name: 'Netflix' }
+                  ].map((stock) => (
                     <Button
-                      key={symbol}
+                      key={stock.symbol}
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setSearchQuery(symbol);
-                        handleAnalyze(symbol);
+                        setSearchQuery(stock.symbol);
+                        handleAnalyze(stock.symbol);
                       }}
                       disabled={loading}
                       className="font-mono text-xs border text-zinc-200 border-zinc-800 hover:border-zinc-600"
+                      title={stock.name}
                     >
-                      {symbol}
+                      {stock.symbol}
                     </Button>
                   ))}
                 </div>
@@ -409,6 +419,23 @@ export default function ProfessionalDashboard() {
                         <Badge className="bg-zinc-800 text-zinc-300 font-mono text-xs">
                           {displayData.sector}
                         </Badge>
+                        {displayData.dataQuality?.realTimeData && (
+                          <Badge className="bg-green-900 text-green-200 font-mono text-xs">
+                            <Signal className="h-3 w-3 mr-1" />
+                            LIVE DATA
+                          </Badge>
+                        )}
+                        {displayData.dataQuality?.newsIntegration && (
+                          <Badge className="bg-blue-900 text-blue-200 font-mono text-xs">
+                            NEWS
+                          </Badge>
+                        )}
+                        {displayData.dataQuality?.aiAnalysis && (
+                          <Badge className="bg-purple-900 text-purple-200 font-mono text-xs">
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            AI
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-zinc-500 font-mono">
                         <span>Market Cap: ${formatCurrency(displayData.marketCap * 1000000000)}</span>
@@ -419,6 +446,15 @@ export default function ProfessionalDashboard() {
                           <Signal className="h-3 w-3" />
                           Confidence: {displayData.confidence}%
                         </span>
+                        {displayData.dataQuality?.sources && (
+                          <>
+                            <Separator orientation="vertical" className="h-4" />
+                            <span className="flex items-center gap-1">
+                              <Globe className="h-3 w-3" />
+                              {displayData.dataQuality.sources.length} Sources
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="text-right space-y-1">
