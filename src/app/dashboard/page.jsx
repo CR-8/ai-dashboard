@@ -1,6 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+
 import {
   AreaChart,
   Area,
@@ -14,67 +24,37 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
-  Cell,
-  Tooltip as RechartsTooltip
+  Cell
 } from "recharts";
+
 import {
   Search,
   TrendingUp,
   TrendingDown,
-  Users,
   DollarSign,
   Target,
-  Globe,
   Loader2,
-  AlertTriangle,
-  CheckCircle,
   Activity,
-  Calendar,
-  ChevronRight,
-  Plus,
-  Minus,
   BarChart3,
   Building2,
-  Briefcase,
   ArrowUpRight,
   ArrowDownRight,
-  Eye,
   RefreshCw,
   Filter,
   Download,
   Share,
-  LayoutDashboard,
-  CandlestickChart,
-  PieChart as PieChartIcon,
-  CreditCard,
-  Wallet,
-  Landmark,
-  Scale,
-  ShieldCheck,
-  AlertCircle,
-  Clock,
-  Database,
-  BookOpen,
-  FileText,
-  Settings,
-  Moon,
-  Sun,
-  Sparkles,
-  Terminal,
-  Code,
+  Eye,
+  Calendar,
+  Globe,
+  Users,
   Zap,
   Signal,
-  Layers,
-  Grid3X3,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   MoreHorizontal,
   Maximize2,
-  Bell,
-  Bookmark,
-  ExternalLink
+  ChevronRight,
+  ExternalLink,
+  Sparkles
 } from "lucide-react";
 
 export default function ProfessionalDashboard() {
@@ -83,9 +63,10 @@ export default function ProfessionalDashboard() {
   const [loading, setLoading] = useState(false);
   const [currentCompany, setCurrentCompany] = useState("");
   const [selectedTab, setSelectedTab] = useState("overview");
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Mock data for demonstration
-  const mockData = {
+  // Enhanced mock data for demonstration
+  const mockData = [{
     companyName: "Apple Inc.",
     symbol: "AAPL", 
     currentPrice: 198.75,
@@ -96,13 +77,18 @@ export default function ProfessionalDashboard() {
     revenue: 394.3,
     netIncome: 99.8,
     sector: "Technology",
+    lastUpdated: "2025-06-23T10:30:00Z",
+    confidence: 94,
+    volatility: 12.8,
+    beta: 1.24,
+    dividendYield: 0.45,
     stockData: [
-      { date: 'Jan', price: 142.50, volume: 2.3, marketCap: 2.85 },
-      { date: 'Feb', price: 156.80, volume: 2.8, marketCap: 3.14 },
-      { date: 'Mar', price: 168.20, volume: 3.1, marketCap: 3.36 },
-      { date: 'Apr', price: 175.90, volume: 2.9, marketCap: 3.52 },
-      { date: 'May', price: 189.40, volume: 3.4, marketCap: 3.79 },
-      { date: 'Jun', price: 198.75, volume: 3.2, marketCap: 3.97 },
+      { date: 'Jan', price: 142.50, volume: 2.3, marketCap: 2.85, high: 145.20, low: 140.10 },
+      { date: 'Feb', price: 156.80, volume: 2.8, marketCap: 3.14, high: 159.40, low: 152.30 },
+      { date: 'Mar', price: 168.20, volume: 3.1, marketCap: 3.36, high: 171.90, low: 164.50 },
+      { date: 'Apr', price: 175.90, volume: 2.9, marketCap: 3.52, high: 178.60, low: 172.30 },
+      { date: 'May', price: 189.40, volume: 3.4, marketCap: 3.79, high: 192.80, low: 186.10 },
+      { date: 'Jun', price: 198.75, volume: 3.2, marketCap: 3.97, high: 201.20, low: 195.40 },
     ],
     financialMetrics: [
       { quarter: 'Q1 23', revenue: 28.5, profit: 8.2, eps: 1.45 },
@@ -113,12 +99,12 @@ export default function ProfessionalDashboard() {
       { quarter: 'Q2 24', revenue: 45.9, profit: 15.2, eps: 2.71 },
     ],
     competitorAnalysis: [
-      { name: 'Apple', marketShare: 28.5, growth: 12.3, pe: 28.4 },
-      { name: 'Microsoft', marketShare: 22.1, growth: 15.7, pe: 32.1 },
-      { name: 'Google', marketShare: 18.9, growth: 8.9, pe: 24.8 },
-      { name: 'Amazon', marketShare: 16.2, growth: 11.4, pe: 45.2 },
-      { name: 'Meta', marketShare: 8.7, growth: 6.2, pe: 19.5 },
-      { name: 'Others', marketShare: 5.6, growth: 4.1, pe: 22.3 }
+      { name: 'Apple', marketShare: 28.5, growth: 12.3, pe: 28.4 , color:'#ef4444'},
+      { name: 'Microsoft', marketShare: 22.1, growth: 15.7, pe: 32.1, color:'#3b82f6' },
+      { name: 'Google', marketShare: 18.9, growth: 8.9, pe: 24.8, color:'#facc15' },
+      { name: 'Amazon', marketShare: 16.2, growth: 11.4, pe: 45.2, color:'#10b981' },
+      { name: 'Meta', marketShare: 8.7, growth: 6.2, pe: 19.5, color:'#8b5cf6' },
+      { name: 'Others', marketShare: 5.6, growth: 4.1, pe: 22.3, color:'#a1a1aa' }
     ],
     sectorPerformance: [
       { sector: 'Tech', performance: 18.5 },
@@ -129,26 +115,59 @@ export default function ProfessionalDashboard() {
       { sector: 'Industrial', performance: 4.2 }
     ],
     analystRatings: [
-      { firm: 'Goldman Sachs', rating: 'BUY', target: 220, current: 198.75 },
-      { firm: 'Morgan Stanley', rating: 'OVERWEIGHT', target: 215, current: 198.75 },
-      { firm: 'JP Morgan', rating: 'NEUTRAL', target: 200, current: 198.75 },
-      { firm: 'Bank of America', rating: 'BUY', target: 225, current: 198.75 },
-      { firm: 'Credit Suisse', rating: 'OUTPERFORM', target: 210, current: 198.75 },
+      { firm: 'Goldman Sachs', rating: 'BUY', target: 220, current: 198.75, confidence: 92 },
+      { firm: 'Morgan Stanley', rating: 'OVERWEIGHT', target: 215, current: 198.75, confidence: 88 },
+      { firm: 'JP Morgan', rating: 'NEUTRAL', target: 200, current: 198.75, confidence: 85 },
+      { firm: 'Bank of America', rating: 'BUY', target: 225, current: 198.75, confidence: 90 },
+      { firm: 'Credit Suisse', rating: 'OUTPERFORM', target: 210, current: 198.75, confidence: 87 },
+    ],
+    riskMetrics: {
+      volatility: 12.8,
+      beta: 1.24,
+      sharpe: 1.45,
+      maxDrawdown: 8.2,
+      var95: 5.1
+    },
+    technicalIndicators: [
+      { name: 'RSI', value: 68.4, signal: 'neutral' },
+      { name: 'MACD', value: 2.3, signal: 'bullish' },
+      { name: 'SMA 50', value: 189.2, signal: 'bullish' },
+      { name: 'SMA 200', value: 172.8, signal: 'bullish' },
     ]
-  };
-
+  },
+]
+    const handleAnalyze = async (company = searchQuery) => {
+      if (!company.trim()) return;
+      setLoading(true);
+      setCurrentCompany(company);
+      
+      // Simulate API call with realistic delay
+      setTimeout(() => {
+        setCompanyData({...mockData, symbol: company.toUpperCase()});
+        setLoading(false);
+      }, 1500);
+    };
   const handleAnalyze = async (company = searchQuery) => {
-    if (!company.trim()) return;
-    
-    setLoading(true);
-    setCurrentCompany(company);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setCompanyData(mockData);
-      setLoading(false);
-    }, 2000);
-  };
+      if (!company.trim()) return;
+      setLoading(true);
+      setCurrentCompany(company);
+
+      // Simulate API call with realistic delay
+      setTimeout(() => {
+        setCompanyData({...mockData, symbol: company.toUpperCase()});
+        setLoading(false);
+      }, 1500);
+    };
+
+    const handleRefresh = () => {
+      setRefreshing(true);
+      setTimeout(() => {
+        setRefreshing(false);
+        if (companyData) {
+          setCompanyData({...companyData, lastUpdated: new Date().toISOString()});
+        }
+      }, 1000);
+    };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -163,401 +182,565 @@ export default function ProfessionalDashboard() {
     return value.toFixed(2);
   };
 
-  const Card = ({ children, className = "" }) => (
-    <div className={`bg-zinc-900 border border-zinc-800 rounded-lg ${className}`}>
-      {children}
-    </div>
-  );
-
-  const Button = ({ children, variant = "primary", size = "md", className = "", onClick, disabled }) => {
-    const baseClass = "transition-all duration-200 font-mono tracking-wide";
-    const variants = {
-      primary: "bg-white text-black hover:bg-zinc-200",
-      secondary: "bg-zinc-800 text-white border border-zinc-700 hover:bg-zinc-700",
-      ghost: "text-zinc-400 hover:text-white hover:bg-zinc-800"
-    };
-    const sizes = {
-      sm: "px-3 py-1.5 text-xs",
-      md: "px-4 py-2 text-sm",
-      lg: "px-6 py-3 text-sm"
-    };
-    
-    return (
-      <button 
-        className={`${baseClass} ${variants[variant]} ${sizes[size]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        onClick={onClick}
-        disabled={disabled}
-      >
-        {children}
-      </button>
-    );
+  const formatPercentage = (value) => {
+    return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
   };
 
-  const Input = ({ value, onChange, onKeyPress, placeholder, disabled }) => (
-    <input
-      type="text"
-      value={value}
-      onChange={onChange}
-      onKeyPress={onKeyPress}
-      placeholder={placeholder}
-      disabled={disabled}
-      className="w-full bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 px-4 py-3 text-sm font-mono focus:outline-none focus:border-white transition-colors"
-    />
-  );
-
-  const MetricCard = ({ title, value, change, subtitle }) => (
-    <Card className="p-4 hover:border-zinc-700 transition-colors">
-      <div className="space-y-2">
-        <div className="text-xs text-zinc-500 uppercase tracking-wider font-mono">{title}</div>
-        <div className="flex items-baseline gap-2">
-          <div className="text-xl font-light text-white font-mono">{value}</div>
-          {change && (
-            <div className="flex items-center text-xs text-zinc-400">
-              {change.startsWith('+') ? (
-                <TrendingUp className="h-3 w-3 mr-1" />
-              ) : (
-                <TrendingDown className="h-3 w-3 mr-1" />
-              )}
-              {change}
-            </div>
-          )}
-        </div>
-        {subtitle && <div className="text-xs text-zinc-500">{subtitle}</div>}
-      </div>
-    </Card>
-  );
+  const getTimeAgo = (timestamp) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+  };
 
   const displayData = companyData || mockData;
 
+  // Chart configurations with enhanced colors
+  const chartConfig = {
+    price: {
+      label: "Price",
+      color: "#3b82f6",
+    },
+    volume: {
+      label: "Volume", 
+      color: "#8b5cf6",
+    },
+    revenue: {
+      label: "Revenue",
+      color: "#06b6d4",
+    },
+    profit: {
+      label: "Profit",
+      color: "#10b981",
+    },
+    eps: {
+      label: "EPS",
+      color: "#f59e0b",
+    },
+    marketShare: {
+      label: "Market Share",
+      color: "#ef4444",
+    },
+    performance: {
+      label: "Performance",
+      color: "#8b5cf6",
+    }
+  };
+
+  // Color palette for charts
+  const colors = {
+    primary: "#3b82f6",
+    secondary: "#8b5cf6", 
+    success: "#10b981",
+    warning: "#f59e0b",
+    danger: "#ef4444",
+    info: "#06b6d4",
+    purple: "#a855f7",
+    pink: "#ec4899",
+    teal: "#14b8a6",
+    orange: "#f97316"
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white font-mono">
-      <div className="max-w-7xl mx-auto p-6">
-        
-        {/* Header */}
-        <div className="mb-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-light tracking-wider mb-2">FINANCIAL ANALYTICS</h1>
-            <p className="text-zinc-500 text-sm">Professional market analysis and insights</p>
-          </div>
-
-          {/* Search */}
-          <div className="max-w-2xl mx-auto">
-            <div className="flex gap-3">
-              <div className="flex-1 relative">
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Enter company symbol (e.g., AAPL, MSFT, GOOGL)"
-                  disabled={loading}
-                />
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-500" />
-              </div>
-              <Button
-                onClick={() => handleAnalyze()}
-                disabled={loading || !searchQuery.trim()}
-                size="lg"
-                className="min-w-[20px] flex items-center justify-center"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                    ANALYZING
-                  </>
-                ) : (
-                  <>
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    ANALYZE
-                  </>
-                )}
-              </Button>
+    <TooltipProvider>
+      <div className="min-h-screen bg-black text-white">
+        <div className="max-w-[1600px] mx-auto p-6 space-y-6">
+          
+          {/* Header Section */}
+          <div className="space-y-6">
+            {/* Title */}
+            <div className="text-center space-y-2">
+              <h1 className="text-4xl font-mono font-light tracking-[0.2em] text-white">
+                FINANCIAL INTELLIGENCE
+              </h1>
+              <p className="text-sm text-zinc-500 font-mono uppercase tracking-wider">
+                Advanced Market Analysis Platform
+              </p>
             </div>
 
-            {/* Quick symbols */}
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              {['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN', 'META', 'NVDA', 'NFLX'].map((symbol) => (
-                <Button
-                  key={symbol}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchQuery(symbol);
-                    handleAnalyze(symbol);
-                  }}
-                  disabled={loading}
-                >
-                  {symbol}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-zinc-500 text-sm">Processing market data...</p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-              {[...Array(4)].map((_, i) => (
-                <Card key={i} className="p-4">
-                  <div className="animate-pulse">
-                    <div className="h-3 bg-zinc-800 rounded mb-2"></div>
-                    <div className="h-6 bg-zinc-800 rounded mb-2 w-20"></div>
-                    <div className="h-2 bg-zinc-800 rounded w-16"></div>
+            {/* Search Interface */}
+            <Card className="bg-zinc-950 border-zinc-800">
+              <CardContent className="p-6">
+                <div className="flex gap-3 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Enter ticker symbol (AAPL, MSFT, TSLA...)"
+                      disabled={loading}
+                      className="pl-10 bg-zinc-900 border-zinc-700 text-white font-mono focus:border-white"
+                    />
                   </div>
+                  <Button
+                    onClick={() => handleAnalyze()}
+                    disabled={loading || !searchQuery.trim()}
+                    className="min-w-[120px] font-mono"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                        ANALYZING
+                      </>
+                    ) : (
+                      <>
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        ANALYZE
+                      </>
+                    )}
+                  </Button>
+                  {companyData && (
+                    <Button
+                      onClick={handleRefresh}
+                      disabled={refreshing}
+                      variant="outline"
+                      className="font-mono"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Quick Access Symbols */}
+                <div className="flex flex-wrap gap-2">
+                  {['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN', 'META', 'NVDA', 'NFLX'].map((symbol) => (
+                    <Button
+                      key={symbol}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchQuery(symbol);
+                        handleAnalyze(symbol);
+                      }}
+                      disabled={loading}
+                      className="font-mono text-xs border text-zinc-200 border-zinc-800 hover:border-zinc-600"
+                    >
+                      {symbol}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          {/* Loading State */}
+          {loading && (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <Card className="bg-zinc-950 border-zinc-800 col-span-full">
+                <CardContent className="p-8 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                  <p className="text-zinc-500 font-mono text-sm">Processing market data...</p>
+                </CardContent>
+              </Card>
+              {[...Array(4)].map((_, i) => (
+                <Card key={i} className="bg-zinc-950 border-zinc-800">
+                  <CardContent className="p-6">
+                    <div className="animate-pulse space-y-3">
+                      <div className="h-3 bg-zinc-800 rounded w-1/2"></div>
+                      <div className="h-6 bg-zinc-800 rounded w-3/4"></div>
+                      <div className="h-2 bg-zinc-800 rounded w-1/3"></div>
+                    </div>
+                  </CardContent>
                 </Card>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Company Header */}
-        {displayData && !loading && (
-          <div className="mb-8">
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-light mb-2">
-                    {displayData.companyName} 
-                    <span className="text-zinc-500 ml-2 text-lg">{displayData.symbol}</span>
-                  </h2>
-                  <div className="flex items-center gap-4 text-sm text-zinc-500">
-                    <span className="border border-zinc-700 px-2 py-1 text-xs">{displayData.sector}</span>
-                    <span>Market Cap: ${formatCurrency(displayData.marketCap * 1000000000)}</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-light">${displayData.currentPrice.toFixed(2)}</div>
-                  <div className="flex items-center justify-end text-sm text-zinc-400 mt-1">
-                    {displayData.change >= 0 ? 
-                      <TrendingUp className="h-4 w-4 mr-1" /> : 
-                      <TrendingDown className="h-4 w-4 mr-1" />
-                    }
-                    <span>
-                      {displayData.change >= 0 ? '+' : ''}{displayData.change.toFixed(2)} 
-                      ({displayData.changePercent.toFixed(2)}%)
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Key Metrics Grid */}
-        {displayData && !loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <MetricCard
-              title="Market Cap"
-              value={`$${formatCurrency(displayData.marketCap * 1000000000)}`}
-              change="+8.2%"
-              subtitle="Above sector average"
-            />
-            <MetricCard
-              title="P/E Ratio"
-              value={displayData.peRatio.toFixed(1)}
-              change="+1.2%"
-              subtitle="Industry: 24.8"
-            />
-            <MetricCard
-              title="Revenue (TTM)"
-              value={`$${formatCurrency(displayData.revenue * 1000000000)}`}
-              change="+2.8%"
-              subtitle="Year-over-year growth"
-            />
-            <MetricCard
-              title="Net Income"
-              value={`$${formatCurrency(displayData.netIncome * 1000000000)}`}
-              change="+5.4%"
-              subtitle="Strong profitability"
-            />
-          </div>
-        )}
-
-        {/* Main Charts Grid */}
-        {displayData && !loading && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            
-            {/* Stock Performance Chart */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-mono text-zinc-500 uppercase tracking-wider mb-1">Stock Performance</h3>
-                  <p className="text-white">6-month price movement</p>
-                </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm">6M</Button>
-                  <Button variant="ghost" size="sm">1Y</Button>
-                  <Button variant="ghost" size="sm">5Y</Button>
-                </div>
-              </div>
-              <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={displayData.stockData}>
-                  <defs>
-                    <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ffffff" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#ffffff" stopOpacity={0.01}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="1 1" stroke="#27272a" />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="#71717a" 
-                    fontSize={10} 
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    stroke="#71717a" 
-                    fontSize={10} 
-                    tickFormatter={(value) => `$${value}`}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="price" 
-                    stroke="#ffffff" 
-                    fill="url(#priceGradient)" 
-                    strokeWidth={1}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </Card>
-
-            {/* Financial Metrics Chart */}
-            <Card className="p-6">
-              <div className="mb-4">
-                <h3 className="text-sm font-mono text-zinc-500 uppercase tracking-wider mb-1">Financial Performance</h3>
-                <p className="text-white">Quarterly revenue and profit</p>
-              </div>
-              <ResponsiveContainer width="100%" height={280}>
-                <ComposedChart data={displayData.financialMetrics}>
-                  <CartesianGrid strokeDasharray="1 1" stroke="#27272a" />
-                  <XAxis 
-                    dataKey="quarter" 
-                    stroke="#71717a" 
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    yAxisId="left"
-                    stroke="#71717a" 
-                    fontSize={10} 
-                    tickFormatter={(value) => `$${value}B`}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    stroke="#71717a" 
-                    fontSize={10} 
-                    tickFormatter={(value) => `$${value}`}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Bar yAxisId="left" dataKey="revenue" fill="#52525b" />
-                  <Bar yAxisId="left" dataKey="profit" fill="#a1a1aa" />
-                  <Line yAxisId="right" type="monotone" dataKey="eps" stroke="#ffffff" strokeWidth={2} dot={{ fill: '#ffffff', r: 3 }} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </Card>
-          </div>
-        )}
-
-        {/* Secondary Analysis Grid */}
-        {displayData && !loading && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            
-            {/* Market Position */}
-            <Card className="p-6">
-              <div className="mb-4">
-                <h3 className="text-sm font-mono text-zinc-500 uppercase tracking-wider mb-1">Market Position</h3>
-                <p className="text-white">Competitive landscape</p>
-              </div>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={displayData.competitorAnalysis} layout="horizontal">
-                  <CartesianGrid strokeDasharray="1 1" stroke="#27272a" />
-                  <XAxis 
-                    type="number" 
-                    stroke="#71717a" 
-                    fontSize={10} 
-                    tickFormatter={(value) => `${value}%`}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    dataKey="name" 
-                    type="category" 
-                    stroke="#71717a" 
-                    fontSize={10} 
-                    width={60}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Bar dataKey="marketShare" fill="#ffffff" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-
-            {/* Sector Performance */}
-            <Card className="p-6">
-              <div className="mb-4">
-                <h3 className="text-sm font-mono text-zinc-500 uppercase tracking-wider mb-1">Sector Performance</h3>
-                <p className="text-white">YTD comparison</p>
-              </div>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={displayData.sectorPerformance}>
-                  <CartesianGrid strokeDasharray="1 1" stroke="#27272a" />
-                  <XAxis 
-                    dataKey="sector" 
-                    stroke="#71717a" 
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    stroke="#71717a" 
-                    fontSize={10} 
-                    tickFormatter={(value) => `${value}%`}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Bar dataKey="performance" fill="#ffffff" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-
-            {/* Analyst Ratings */}
-            <Card className="p-6">
-              <div className="mb-4">
-                <h3 className="text-sm font-mono text-zinc-500 uppercase tracking-wider mb-1">Analyst Ratings</h3>
-                <p className="text-white">Professional consensus</p>
-              </div>
-              <div className="space-y-3">
-                {displayData.analystRatings.slice(0, 5).map((rating, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="text-sm text-zinc-300">{rating.firm}</div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-1 border ${
-                        rating.rating === 'BUY' || rating.rating === 'OVERWEIGHT' || rating.rating === 'OUTPERFORM'
-                          ? 'border-white text-white' 
-                          : 'border-zinc-700 text-zinc-500'
-                      }`}>
-                        {rating.rating}
-                      </span>
-                      <span className="text-xs text-zinc-500">${rating.target}</span>
+          {/* Dashboard Content */}
+          {displayData && !loading && (
+            <div className="space-y-6">
+              
+              {/* Company Header */}
+              <Card className="bg-zinc-950 border-zinc-800">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-2xl text-zinc-200 font-mono font-light tracking-wider">
+                          {displayData.companyName}
+                        </h2>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {displayData.symbol}
+                        </Badge>
+                        <Badge className="bg-zinc-800 text-zinc-300 font-mono text-xs">
+                          {displayData.sector}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-zinc-500 font-mono">
+                        <span>Market Cap: ${formatCurrency(displayData.marketCap * 1000000000)}</span>
+                        <Separator orientation="vertical" className="h-4" />
+                        <span>Updated: {getTimeAgo(displayData.lastUpdated)}</span>
+                        <Separator orientation="vertical" className="h-4" />
+                        <span className="flex items-center gap-1">
+                          <Signal className="h-3 w-3" />
+                          Confidence: {displayData.confidence}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right space-y-1">
+                      <div className="text-3xl text-zinc-200 font-mono font-light">${displayData.currentPrice.toFixed(2)}</div>
+                      <div className="flex items-center justify-end gap-1">
+                        {displayData.change >= 0 ? 
+                          <ArrowUpRight className="h-4 w-4 text-green-400" /> : 
+                          <ArrowDownRight className="h-4 w-4 text-red-400" />
+                        }
+                        <span className={`font-mono text-sm ${displayData.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatPercentage(displayData.changePercent)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                ))}
+                </CardContent>
+              </Card>
+
+              {/* Bento Grid Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Key Metrics - Top Row */}
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-3">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Market Cap</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="text-2xl font-mono font-light text-white">${formatCurrency(displayData.marketCap * 1000000000)}</div>
+                      <div className="flex items-center text-xs text-green-400">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        +8.2% vs sector
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-3">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">P/E Ratio</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="text-2xl font-mono font-light text-white">{displayData.peRatio.toFixed(1)}</div>
+                      <div className="text-xs text-zinc-400">Industry avg: 24.8</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-3">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Revenue (TTM)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="text-2xl font-mono font-light text-white">${formatCurrency(displayData.revenue * 1000000000)}</div>
+                      <div className="flex items-center text-xs text-green-400">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        +12.4% YoY
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-3">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Volatility</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="text-2xl font-mono font-light text-white">{displayData.volatility}%</div>
+                      <div className="text-xs text-zinc-400">30-day average</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Main Chart - Large */}
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-8">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Price Performance</CardTitle>
+                        <CardDescription className="font-mono text-zinc-400">6-month price movement with volume</CardDescription>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="text-xs font-mono text-zinc-300">6M</Button>
+                        <Button variant="ghost" size="sm" className="text-xs font-mono text-zinc-300">1Y</Button>
+                        <Button variant="ghost" size="sm" className="text-xs font-mono text-zinc-300">5Y</Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer config={chartConfig} className="h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={displayData.stockData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                          <defs>
+                            <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                          <XAxis 
+                            dataKey="date" 
+                            stroke="#a1a1aa" 
+                            fontSize={11} 
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            tickMargin={10}
+                          />
+                          <YAxis 
+                            yAxisId="price"
+                            stroke="#a1a1aa" 
+                            fontSize={11} 
+                            tickFormatter={(value) => `$${value}`}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            width={60}
+                          />
+                          <YAxis 
+                            yAxisId="volume"
+                            orientation="right"
+                            stroke="#a1a1aa" 
+                            fontSize={11} 
+                            tickFormatter={(value) => `${value}B`}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            width={60}
+                          />
+                          <ChartTooltip content={<ChartTooltipContent />} className="text-zinc-300"/>
+                          <Area 
+                            yAxisId="price"
+                            type="monotone" 
+                            dataKey="price" 
+                            stroke="#3b82f6" 
+                            fill="url(#priceGradient)" 
+                            strokeWidth={2}
+                          />
+                          <Bar yAxisId="volume" dataKey="volume" fill="#8b5cf6" opacity={0.6} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Technical Indicators */}
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-4">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Technical Signals</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {displayData.technicalIndicators.map((indicator, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <span className="text-sm font-mono text-zinc-200">{indicator.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-mono text-white">{indicator.value}</span>
+                          <Badge 
+                            variant={indicator.signal === 'bullish' ? 'default' : indicator.signal === 'bearish' ? 'destructive' : 'secondary'}
+                            className="text-xs font-mono"
+                          >
+                            {indicator.signal}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Financial Metrics Chart */}
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-6">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Financial Performance</CardTitle>
+                    <CardDescription className="font-mono text-zinc-400">Quarterly revenue and profit trends</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer config={chartConfig} className="h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={displayData.financialMetrics} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                          <XAxis 
+                            dataKey="quarter" 
+                            stroke="#a1a1aa" 
+                            fontSize={11}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            tickMargin={10}
+                          />
+                          <YAxis 
+                            yAxisId="revenue"
+                            stroke="#a1a1aa" 
+                            fontSize={11} 
+                            tickFormatter={(value) => `$${value}B`}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            width={60}
+                          />
+                          <YAxis 
+                            yAxisId="eps"
+                            orientation="right"
+                            stroke="#a1a1aa" 
+                            fontSize={11} 
+                            tickFormatter={(value) => `$${value}`}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            width={60}
+                          />
+                          <ChartTooltip content={<ChartTooltipContent />} className="text-zinc-300"/>
+                          <Bar yAxisId="revenue" dataKey="revenue" fill="#06b6d4" />
+                          <Bar yAxisId="revenue" dataKey="profit" fill="#10b981" />
+                          <Line yAxisId="eps" type="monotone" dataKey="eps" stroke="#f59e0b" strokeWidth={3} dot={{ fill: '#f59e0b', r: 4 }} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Market Position */}
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-6">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Market Position</CardTitle>
+                    <CardDescription className="font-mono text-zinc-400">Competitive landscape analysis</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer config={chartConfig} className="h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={displayData.competitorAnalysis} layout="horizontal" margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                          <XAxis 
+                            type="number"
+                            stroke="#a1a1aa" 
+                            fontSize={11} 
+                            tickFormatter={(value) => `${value}%`}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            tickMargin={10}
+                            domain={[0, 35]}
+                          />
+                          <YAxis 
+                            dataKey="name" 
+                            type="category"
+                            stroke="#a1a1aa" 
+                            fontSize={11} 
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            width={80}
+                          />
+                          <ChartTooltip 
+                            content={<ChartTooltipContent />} 
+                            className="text-zinc-300"
+                          />
+                          <Bar 
+                            dataKey="marketShare" 
+                            radius={[0, 4, 4, 0]}
+                          >
+                            {displayData.competitorAnalysis.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={entry.color}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  </CardContent>
+                </Card> 
+
+                {/* Analyst Ratings */}
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-4">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Analyst Consensus</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {displayData.analystRatings.slice(0, 5).map((rating, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="text-sm font-mono text-zinc-200">{rating.firm}</div>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant={rating.rating === 'BUY' || rating.rating === 'OVERWEIGHT' || rating.rating === 'OUTPERFORM' ? 'default' : 'secondary'}
+                            className="text-xs font-mono"
+                          >
+                            {rating.rating}
+                          </Badge>
+                          <span className="text-xs font-mono text-zinc-400">${rating.target}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Sector Performance */}
+                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-8">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Sector Performance</CardTitle>
+                    <CardDescription className="font-mono text-zinc-400">Year-to-date sector comparison</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer config={chartConfig} className="h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={displayData.sectorPerformance} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                          <XAxis 
+                            dataKey="sector" 
+                            stroke="#a1a1aa" 
+                            fontSize={11}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            tickMargin={10}
+                          />
+                          <YAxis 
+                            stroke="#a1a1aa" 
+                            fontSize={11} 
+                            tickFormatter={(value) => `${value}%`}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#a1a1aa' }}
+                            width={50}
+                          />
+                          <ChartTooltip content={<ChartTooltipContent />} className="text-zinc-300" />
+                          <Bar dataKey="performance">
+                            {displayData.sectorPerformance.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={entry.performance >= 0 ? colors.success : colors.danger}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
               </div>
-            </Card>
-          </div>
-        )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-center gap-3 pt-6">
+                <Button variant="outline" className="font-mono">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Report
+                </Button>
+                <Button variant="outline" className="font-mono">
+                  <Share className="h-4 w-4 mr-2" />
+                  Share Analysis
+                </Button>
+                <Button variant="outline" className="font-mono">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Watch List
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
