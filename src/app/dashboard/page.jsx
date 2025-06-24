@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1328,4 +1328,23 @@ function ProfessionalDashboard() {
   );
 }
 
-export default ProfessionalDashboard;
+// Loading component for Suspense fallback
+function DashboardLoading() {
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-white font-mono flex items-center gap-2">
+        <RefreshCw className="h-4 w-4 animate-spin" />
+        Loading Dashboard...
+      </div>
+    </div>
+  );
+}
+
+// Main export with Suspense wrapper
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <ProfessionalDashboard />
+    </Suspense>
+  );
+}
