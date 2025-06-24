@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SplashScreen from "@/components/ui/splash-screen";
 import jsPDF from 'jspdf';
@@ -73,7 +75,7 @@ import {
   Minus
 } from "lucide-react";
 
-export default function ProfessionalDashboard() {
+function ProfessionalDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [companyData, setCompanyData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -92,6 +94,9 @@ export default function ProfessionalDashboard() {
   const [watchlist, setWatchlist] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [darkMode, setDarkMode] = useState(true);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Enhanced mock data for demonstration - moved to top to avoid initialization issues
   const mockData = {
@@ -181,6 +186,29 @@ export default function ProfessionalDashboard() {
     
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Handle company parameter from URL
+  useEffect(() => {
+    const companyParam = searchParams.get('company');
+    if (companyParam) {
+      const decodedCompany = decodeURIComponent(companyParam);
+      setCurrentCompany(decodedCompany);
+      setSearchQuery(decodedCompany);
+      
+      // Auto-trigger search for the company
+      setLoading(true);
+      setTimeout(() => {
+        // Here you could fetch real data for the company
+        // For now, we'll update the mock data with the searched company name
+        setCompanyData({
+          ...mockData,
+          companyName: decodedCompany,
+          symbol: decodedCompany.length >= 3 ? decodedCompany.substring(0, 4).toUpperCase() : decodedCompany.toUpperCase()
+        });
+        setLoading(false);
+      }, 1500);
+    }
+  }, [searchParams]);
 
   // Enhanced export functionality with multiple formats
   const handleExportAdvanced = async (format = 'pdf') => {
@@ -412,7 +440,7 @@ export default function ProfessionalDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ symbol: company.toUpperCase() }),
+        body: JSON.stringify({ symbol: company }), // Send original company name/symbol, let backend resolve it
       });
 
       if (!response.ok) {
@@ -425,13 +453,15 @@ export default function ProfessionalDashboard() {
       if (data.error) {
         console.warn('API returned error:', data.error);
         if (data.fallback && data.data) {
-          setCompanyData({ ...mockData, ...data.data, symbol: company.toUpperCase() });
+          setCompanyData({ ...mockData, ...data.data });
         } else {
           setCompanyData({ ...mockData, symbol: company.toUpperCase() });
         }
       } else {
         // Successful API response
         console.log('Successfully received real data for:', company);
+        console.log('Data includes news:', data.news?.length || 0, 'articles');
+        console.log('Data includes AI insights:', !!data.keyInsights);
         setCompanyData(data);
       }
     } catch (error) {
@@ -456,7 +486,7 @@ export default function ProfessionalDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ symbol: currentCompany.toUpperCase() }),
+        body: JSON.stringify({ symbol: currentCompany }), // Send original search term
       });
 
       if (response.ok) {
@@ -464,6 +494,8 @@ export default function ProfessionalDashboard() {
         if (!data.error) {
           setCompanyData(data);
           console.log('Data refreshed successfully');
+          console.log('Refreshed data includes news:', data.news?.length || 0, 'articles');
+          console.log('Refreshed data includes AI insights:', !!data.keyInsights);
         }
       }
     } catch (error) {
@@ -613,7 +645,7 @@ export default function ProfessionalDashboard() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder="Search symbol (AAPL, MSFT, GOOGL...)"
+                      placeholder="Search company or symbol (e.g., AAPL, Microsoft, Tesla...)"
                       disabled={loading}
                       className="pl-10 bg-zinc-900/50 border-zinc-700/50 text-white font-mono focus:border-white/50 transition-colors"
                     />
@@ -1295,3 +1327,5 @@ export default function ProfessionalDashboard() {
     </TooltipProvider>
   );
 }
+
+export default ProfessionalDashboard;

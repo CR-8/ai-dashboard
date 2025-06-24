@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Search, TrendingUp, BarChart3, Brain, Zap, ChevronRight, ArrowUpRight, Activity, DollarSign, Users, PieChart, LineChart, Building2, Globe, Clock, Shield, Play, Star, ArrowRight } from "lucide-react";
 import { 
     animateHeroText, 
@@ -21,7 +22,8 @@ export default function HomePage() {
     const [currentTime, setCurrentTime] = useState("");
     const [activeMetric, setActiveMetric] = useState(0);
     const [showSplash, setShowSplash] = useState(true);
-
+    
+    const router = useRouter();
     
     // Refs for animation targets
     const searchButtonRef = useRef(null);
@@ -79,12 +81,12 @@ export default function HomePage() {
 
     if (showSplash) {
         return <SplashScreen onComplete={handleSplashComplete} duration={5000} />;
-    }
-
-    const handleSearch = () => {
+    }    const handleSearch = () => {
         if (searchQuery.trim()) {
             setIsLoading(true);
-            setTimeout(() => setIsLoading(false), 2000);
+            // Navigate to dashboard with company name as URL parameter
+            const companyParam = encodeURIComponent(searchQuery.trim());
+            router.push(`/dashboard?company=${companyParam}`);
         }
     };
 
@@ -92,6 +94,11 @@ export default function HomePage() {
         if (e.key === 'Enter') {
             handleSearch();
         }
+    };
+
+    const handleAnalysisClick = (company) => {
+        const companyParam = encodeURIComponent(company);
+        router.push(`/dashboard?company=${companyParam}`);
     };
 
     const marketMetrics = [
@@ -245,10 +252,13 @@ export default function HomePage() {
                                 <span className="sm:hidden">ALL</span>
                                 <ArrowRight className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
                             </button>
-                        </div>
-                        <div className="space-y-1.5 sm:space-y-2">
+                        </div>                        <div className="space-y-1.5 sm:space-y-2">
                             {recentAnalyses.slice(0, 3).map((analysis) => (
-                                <div key={analysis.ticker} className="flex items-center justify-between py-1 sm:py-1.5 border-b border-neutral-800 last:border-b-0">
+                                <div 
+                                    key={analysis.ticker} 
+                                    className="flex items-center justify-between py-1 sm:py-1.5 border-b border-neutral-800 last:border-b-0 cursor-pointer hover:bg-neutral-800/30 transition-colors px-2 -mx-2 rounded"
+                                    onClick={() => handleAnalysisClick(analysis.company)}
+                                >
                                     <div className="flex items-center gap-1.5 sm:gap-2">
                                         <div className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 bg-neutral-800 flex items-center justify-center text-[9px] sm:text-xs">
                                             {analysis.ticker.charAt(0)}
@@ -261,6 +271,7 @@ export default function HomePage() {
                                     <div className="flex items-center gap-0.5 sm:gap-1">
                                         <span className="text-[9px] sm:text-xs font-medium">{analysis.score}</span>
                                         <TrendingUp className={`w-2 h-2 sm:w-2.5 sm:h-2.5 ${analysis.trend === 'up' ? 'text-green-400' : 'text-red-400'}`} />
+                                        <ChevronRight className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-neutral-500 ml-1" />
                                     </div>
                                 </div>
                             ))}

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as cheerio from 'cheerio';
 import globalCache from '../../../lib/cache-manager.js';
+import companies from '../../dashboard/companiesdata.js';
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
@@ -48,6 +49,152 @@ const SYMBOL_MAPPINGS = {
   'HDFC': { NSE: 'HDFCBANK.NS', BSE: 'HDFCBANK.BO', ALPHA: 'HDB' },
   'WIPRO': { NSE: 'WIPRO.NS', BSE: 'WIPRO.BO', ALPHA: 'WIT' },
 };
+
+// Function to resolve company name or partial symbol to ticker symbol
+function resolveTickerSymbol(input) {
+  if (!input || typeof input !== 'string') {
+    return null;
+  }
+
+  const searchTerm = input.trim().toLowerCase();
+  
+  // If input looks like a ticker symbol (all caps, 1-5 characters), check if it exists
+  if (/^[A-Z]{1,5}$/.test(input.trim())) {
+    const directMatch = companies.find(company => 
+      company.symbol.toUpperCase() === input.trim().toUpperCase()
+    );
+    if (directMatch) {
+      return {
+        symbol: directMatch.symbol,
+        companyName: directMatch.companyName,
+        industry: directMatch.industry,
+        marketCap: directMatch.marketCap,
+        matchType: 'exact_symbol'
+      };
+    }
+  }
+
+  // Search by exact company name match
+  let match = companies.find(company => 
+    company.companyName.toLowerCase() === searchTerm
+  );
+  
+  if (match) {
+    return {
+      symbol: match.symbol,
+      companyName: match.companyName,
+      industry: match.industry,
+      marketCap: match.marketCap,
+      matchType: 'exact_name'
+    };
+  }
+
+  // Search by symbol (case insensitive)
+  match = companies.find(company => 
+    company.symbol.toLowerCase() === searchTerm
+  );
+  
+  if (match) {
+    return {
+      symbol: match.symbol,
+      companyName: match.companyName,
+      industry: match.industry,
+      marketCap: match.marketCap,
+      matchType: 'exact_symbol'
+    };
+  }
+
+  // Search by partial company name match (contains)
+  match = companies.find(company => 
+    company.companyName.toLowerCase().includes(searchTerm) ||
+    searchTerm.split(' ').every(word => 
+      company.companyName.toLowerCase().includes(word)
+    )
+  );
+  
+  if (match) {
+    return {
+      symbol: match.symbol,
+      companyName: match.companyName,
+      industry: match.industry,
+      marketCap: match.marketCap,
+      matchType: 'partial_name'
+    };
+  }
+
+  // Search by common company name variations
+  const commonVariations = {
+    'apple': 'Apple Inc.',
+    'microsoft': 'Microsoft Corporation',
+    'google': 'Alphabet Inc.',
+    'amazon': 'Amazon.com, Inc.',
+    'tesla': 'Tesla, Inc.',
+    'meta': 'Meta Platforms, Inc.',
+    'facebook': 'Meta Platforms, Inc.',
+    'netflix': 'Netflix, Inc.',
+    'nvidia': 'NVIDIA Corporation',
+    'intel': 'Intel Corporation',
+    'amd': 'Advanced Micro Devices, Inc.',
+    'walmart': 'Walmart Inc.',
+    'berkshire': 'Berkshire Hathaway Inc.',
+    'johnson': 'Johnson & Johnson',
+    'jpmorgan': 'JPMorgan Chase & Co.',
+    'visa': 'Visa Inc.',
+    'mastercard': 'Mastercard Incorporated',
+    'boeing': 'The Boeing Company',
+    'disney': 'The Walt Disney Company',
+    'coca cola': 'The Coca-Cola Company',
+    'pepsi': 'PepsiCo, Inc.',
+    'mcdonalds': "McDonald's Corporation"
+  };
+
+  const variation = commonVariations[searchTerm];
+  if (variation) {
+    match = companies.find(company => 
+      company.companyName.toLowerCase().includes(variation.toLowerCase())
+    );
+    
+    if (match) {
+      return {
+        symbol: match.symbol,
+        companyName: match.companyName,
+        industry: match.industry,
+        marketCap: match.marketCap,
+        matchType: 'variation_match'
+      };
+    }
+  }
+
+  // Fuzzy search - find closest matches
+  const fuzzyMatches = companies.filter(company => {
+    const companyWords = company.companyName.toLowerCase().split(' ');
+    const searchWords = searchTerm.split(' ');
+    
+    return searchWords.some(searchWord => 
+      companyWords.some(companyWord => 
+        companyWord.includes(searchWord) || searchWord.includes(companyWord)
+      )
+    );
+  }).slice(0, 5); // Limit to top 5 fuzzy matches
+
+  if (fuzzyMatches.length > 0) {
+    // Return the first fuzzy match
+    const bestMatch = fuzzyMatches[0];
+    return {
+      symbol: bestMatch.symbol,
+      companyName: bestMatch.companyName,
+      industry: bestMatch.industry,
+      marketCap: bestMatch.marketCap,
+      matchType: 'fuzzy_match',
+      alternativeMatches: fuzzyMatches.slice(1).map(company => ({
+        symbol: company.symbol,
+        companyName: company.companyName
+      }))
+    };
+  }
+
+  return null;
+}
 
 // Enhanced utility function with caching and rate limiting
 async function fetchWithRetry(url, options = {}, source = 'unknown', cacheKey = null, maxRetries = 3) {
@@ -400,7 +547,27 @@ function generateFallbackStockData(symbol) {
   return data.slice(-6); // Return last 6 data points
 }
 
-function generateFallbackCompanyData(symbol) {
+function generateFallbackCompanyData(symbol, resolvedCompany = null) {
+  // Use resolved company info if available, otherwise fallback to hardcoded data
+  if (resolvedCompany) {
+    const marketCapValue = parseFloat(resolvedCompany.marketCap.replace(/[BM]/g, ''));
+    const marketCapMultiplier = resolvedCompany.marketCap.includes('B') ? 1 : 0.001;
+    
+    return {
+      companyName: resolvedCompany.companyName,
+      symbol: resolvedCompany.symbol,
+      sector: resolvedCompany.industry,
+      marketCap: marketCapValue * marketCapMultiplier,
+      peRatio: Math.round((20 + Math.random() * 20) * 10) / 10,
+      revenue: Math.round((marketCapValue * marketCapMultiplier) * (0.8 + Math.random() * 0.4)),
+      description: `${resolvedCompany.companyName} is a leading company in the ${resolvedCompany.industry.toLowerCase()} sector.`,
+      exchange: 'NASDAQ',
+      currency: 'USD',
+      country: 'USA',
+    };
+  }
+  
+  // Original fallback logic
   const companyInfo = getCompanyInfo(symbol);
   
   return {
@@ -628,6 +795,7 @@ function generateFallbackNews(companyName) {
 // Main API handler
 export async function POST(request) {
   let normalizedSymbol = 'UNKNOWN';
+  let resolvedCompany = null;
   
   try {
     const { symbol } = await request.json();
@@ -638,8 +806,19 @@ export async function POST(request) {
 
     console.log(`Starting comprehensive analysis for: ${symbol}`);
 
+    // First, try to resolve the input to a valid ticker symbol
+    resolvedCompany = resolveTickerSymbol(symbol);
+    
+    if (resolvedCompany) {
+      normalizedSymbol = resolvedCompany.symbol;
+      console.log(`Resolved "${symbol}" to ticker: ${normalizedSymbol} (${resolvedCompany.companyName})`);
+    } else {
+      // Fallback to original behavior if no match found
+      normalizedSymbol = symbol.toUpperCase();
+      console.log(`No exact match found for "${symbol}", using as-is: ${normalizedSymbol}`);
+    }
+
     // Normalize symbol and get variants for different markets
-    normalizedSymbol = symbol.toUpperCase();
     const symbolVariants = SYMBOL_MAPPINGS[normalizedSymbol] || { 
       NSE: `${normalizedSymbol}.NS`, 
       BSE: `${normalizedSymbol}.BO`, 
@@ -647,11 +826,10 @@ export async function POST(request) {
     };
 
     // Fetch data from multiple sources in parallel
-    console.log('Fetching data from multiple sources...');
-      const dataPromises = [
+    console.log('Fetching data from multiple sources...');      const dataPromises = [
       fetchCompanyOverview(symbolVariants.ALPHA).catch(e => {
         console.warn('Company overview failed:', e.message);
-        return generateFallbackCompanyData(normalizedSymbol);
+        return generateFallbackCompanyData(normalizedSymbol, resolvedCompany);
       }),
       fetchStockData(symbolVariants.ALPHA).catch(e => {
         console.warn('Stock data failed:', e.message);
@@ -672,9 +850,11 @@ export async function POST(request) {
       }),
     ];
 
-    const [companyOverview, stockData, realTimeQuote, financialMetrics] = await Promise.all(dataPromises);
+    const [companyOverview, stockData, realTimeQuote, financialMetrics] = await Promise.all(dataPromises);    console.log('Basic data fetched, getting additional insights...');
 
-    console.log('Basic data fetched, getting additional insights...');
+    // Use resolved company name if available, otherwise use the one from company overview
+    const companyNameForNews = resolvedCompany?.companyName || companyOverview.companyName;
+    console.log(`Fetching news for: ${companyNameForNews}`);
 
     // Fetch additional data
     const [competitorAnalysis, newsData] = await Promise.all([
@@ -682,22 +862,43 @@ export async function POST(request) {
         console.warn('Competitor analysis failed:', e.message);
         return [];
       }),
-      fetchFinancialNews(normalizedSymbol, companyOverview.companyName).catch(e => {
+      fetchFinancialNews(normalizedSymbol, companyNameForNews).catch(e => {
         console.warn('News fetch failed:', e.message);
         return [];
       }),
-    ]);
-
+    ]);    console.log(`Fetched ${newsData.length} news articles`);
     console.log('Running AI analysis...');
 
     // Enhanced AI analysis with all collected data
     const aiAnalysis = await analyzeWithAI(companyOverview, realTimeQuote, newsData);
+    
+    console.log('AI analysis completed:', {
+      hasKeyInsights: !!aiAnalysis.keyInsights,
+      hasRisks: !!aiAnalysis.risks,
+      hasRecommendation: !!aiAnalysis.recommendation,
+      technicalIndicators: aiAnalysis.technicalIndicators?.length || 0
+    });
 
     // Build comprehensive response
     const responseData = {
       // Company basics
       ...companyOverview,
       ...realTimeQuote,
+      
+      // Symbol resolution information (if resolved from company data)
+      ...(resolvedCompany && {
+        symbolResolution: {
+          originalInput: symbol,
+          resolvedSymbol: resolvedCompany.symbol,
+          resolvedCompanyName: resolvedCompany.companyName,
+          industry: resolvedCompany.industry,
+          marketCap: resolvedCompany.marketCap,
+          matchType: resolvedCompany.matchType,
+          ...(resolvedCompany.alternativeMatches && {
+            alternativeMatches: resolvedCompany.alternativeMatches
+          })
+        }
+      }),
       
       // Market data
       stockData: Array.isArray(stockData) ? stockData.slice(-6) : stockData?.slice?.(-6) || [],
@@ -725,23 +926,29 @@ export async function POST(request) {
         realTimeData: !!DATA_SOURCES.FINNHUB,
         newsIntegration: newsData.length > 0,
         aiAnalysis: true,
+        symbolResolved: !!resolvedCompany,
         lastUpdated: new Date().toISOString(),
         sources: ['Alpha Vantage', 'Finnhub', 'Financial Modeling Prep', 'Google AI', 'News API'].filter(Boolean)
       },
       lastUpdated: new Date().toISOString(),
-    };
-
-    // Log successful completion
-    console.log(`Successfully analyzed ${symbol} with ${newsData.length} news articles`);
-      return NextResponse.json(responseData);
+    };    // Log successful completion with detailed data summary
+    console.log(`Successfully analyzed ${symbol}:`, {
+      newsArticles: newsData.length,
+      hasAIInsights: !!responseData.keyInsights,
+      hasRisks: !!responseData.risks,
+      hasRecommendation: !!responseData.recommendation,
+      hasNews: !!responseData.news?.length,
+      dataQuality: responseData.dataQuality
+    });
+    
+    return NextResponse.json(responseData);
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
+    console.error('API Error:', error);    return NextResponse.json(
       { 
         error: 'Failed to analyze company', 
         details: error.message,
         fallback: true,
-        data: generateFallbackCompanyData(normalizedSymbol)
+        data: generateFallbackCompanyData(normalizedSymbol, resolvedCompany)
       },
       { status: 500 }
     );
