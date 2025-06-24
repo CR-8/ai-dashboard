@@ -1,5 +1,10 @@
-import React from 'react'
+"use client"
+
+import React ,{useState} from 'react'
 import { ChevronRight, Zap, Search, Palette, ArrowRight, CheckCircle, Clock, Users } from 'lucide-react'
+import SplashScreen from "@/components/ui/splash-screen2";
+
+
 
 function QuickStart() {
   const steps = [
@@ -32,6 +37,15 @@ function QuickStart() {
     { label: 'Success Rate', value: '99.9%', icon: <CheckCircle className="w-4 h-4" /> }
   ]
 
+  const [showSplash, setShowSplash] = useState(true);
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} duration={6000} />;
+  }
   return (
     <div className="min-h-screen bg-black text-white font-mono">
       <div className="max-w-7xl mx-auto px-6 py-16">
