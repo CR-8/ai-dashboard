@@ -86,46 +86,44 @@ export default function SplashScreen({ onComplete, duration = 3000 }) {
                 }}
             />
 
-            <div className="relative h-full flex flex-col">
+            <div className="relative h-full flex flex-col">                
                 {/* Header */}
-                <div className="flex-none border-b border-zinc-800 p-6">
+                <div className="flex-none border-b border-zinc-800 p-4 sm:p-6">
                     <div className="max-w-7xl mx-auto flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-white text-black rounded flex items-center justify-center">
-                                <BarChart3 className="w-5 h-5" />
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white text-black rounded flex items-center justify-center">
+                                <BarChart3 className="w-3 h-3 sm:w-5 sm:h-5" />
                             </div>
                             <div className="font-mono">
-                                <div className="text-sm font-medium">FINANCIAL INTELLIGENCE</div>
-                                <div className="text-xs text-zinc-500">Enterprise Platform</div>
+                                <div className="text-xs sm:text-sm font-medium">FINANCIAL INTELLIGENCE</div>
+                                <div className="text-xs text-zinc-500 hidden sm:block">Enterprise Platform</div>
                             </div>
                         </div>
                         <Badge variant="outline" className="font-mono text-xs border-zinc-700">
                             v2.1.0
                         </Badge>
                     </div>
-                </div>
-
-                {/* Main Content */}
-                <div className="flex-1 p-6">
+                </div>                {/* Main Content */}
+                <div className="flex-1 p-4 sm:p-6">
                     <div className="max-w-7xl mx-auto h-full">
-                        <div className="grid grid-cols-12 gap-6 h-full">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 h-full">
                             
                             {/* Left Column - Loading Status */}
-                            <div className="col-span-4 space-y-6">
+                            <div className="lg:col-span-4 space-y-4 sm:space-y-6">
                                 
                                 {/* Current Status */}
-                                <div className="border border-zinc-800 rounded-lg p-6">
-                                    <div className="flex items-center space-x-3 mb-4">
-                                        <div className="w-10 h-10 border border-zinc-700 rounded-lg flex items-center justify-center">
-                                            <CurrentIcon className="w-5 h-5" />
+                                <div className="border border-zinc-800 rounded-lg p-4 sm:p-6">
+                                    <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 border border-zinc-700 rounded-lg flex items-center justify-center">
+                                            <CurrentIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                                         </div>
                                         <div>
-                                            <div className="font-mono text-sm font-medium">System Status</div>
+                                            <div className="font-mono text-xs sm:text-sm font-medium">System Status</div>
                                             <div className="text-xs text-zinc-500">Initializing Platform</div>
                                         </div>
                                     </div>
                                     
-                                    <div className="space-y-3">
+                                    <div className="space-y-2 sm:space-y-3">
                                         <div className="font-mono text-xs text-zinc-400">
                                             {loadingSteps[currentStep]?.text || "Loading..."}
                                         </div>
@@ -139,17 +137,17 @@ export default function SplashScreen({ onComplete, duration = 3000 }) {
                                 </div>
 
                                 {/* Loading Steps */}
-                                <div className="border border-zinc-800 rounded-lg p-6">
-                                    <div className="font-mono text-sm font-medium mb-4">Initialization Steps</div>
-                                    <div className="space-y-3">
+                                <div className="border border-zinc-800 rounded-lg p-4 sm:p-6">
+                                    <div className="font-mono text-xs sm:text-sm font-medium mb-3 sm:mb-4">Initialization Steps</div>
+                                    <div className="space-y-2 sm:space-y-3">
                                         {loadingSteps.map((step, index) => {
                                             const StepIcon = step.icon;
                                             const isActive = index === currentStep;
                                             const isCompleted = index < currentStep;
                                             
                                             return (
-                                                <div key={index} className="flex items-center space-x-3">
-                                                    <div className={`w-6 h-6 rounded border flex items-center justify-center transition-all ${
+                                                <div key={index} className="flex items-center space-x-2 sm:space-x-3">
+                                                    <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded border flex items-center justify-center transition-all ${
                                                         isCompleted 
                                                             ? 'bg-white text-black border-white' 
                                                             : isActive 
@@ -157,9 +155,9 @@ export default function SplashScreen({ onComplete, duration = 3000 }) {
                                                                 : 'border-zinc-700 text-zinc-600'
                                                     }`}>
                                                         {isCompleted ? (
-                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                                         ) : (
-                                                            <StepIcon className="w-3 h-3" />
+                                                            <StepIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                                         )}
                                                     </div>
                                                     <span className={`font-mono text-xs transition-colors ${
@@ -172,19 +170,17 @@ export default function SplashScreen({ onComplete, duration = 3000 }) {
                                         })}
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Center Column - Features Grid */}
-                            <div className="col-span-5 space-y-6">
+                            </div>                            {/* Center Column - Features Grid */}
+                            <div className="lg:col-span-5 space-y-4 sm:space-y-6">
                                 
                                 {/* Platform Features */}
-                                <div className="border border-zinc-800 rounded-lg p-6">
-                                    <div className="font-mono text-sm font-medium mb-4">Platform Capabilities</div>
-                                    <div className="grid grid-cols-2 gap-3">
+                                <div className="border border-zinc-800 rounded-lg p-4 sm:p-6">
+                                    <div className="font-mono text-xs sm:text-sm font-medium mb-3 sm:mb-4">Platform Capabilities</div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                         {features.map((feature, index) => (
                                             <div 
                                                 key={index}
-                                                className={`border border-zinc-800 rounded p-4 transition-all duration-500 ${
+                                                className={`border border-zinc-800 rounded p-3 sm:p-4 transition-all duration-500 ${
                                                     index <= currentStep ? 'border-zinc-700 bg-zinc-900/20' : ''
                                                 }`}
                                                 style={{ 
@@ -199,26 +195,24 @@ export default function SplashScreen({ onComplete, duration = 3000 }) {
                                 </div>
 
                                 {/* System Metrics */}
-                                <div className="border border-zinc-800 rounded-lg p-6">
-                                    <div className="font-mono text-sm font-medium mb-4">System Metrics</div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                <div className="border border-zinc-800 rounded-lg p-4 sm:p-6">
+                                    <div className="font-mono text-xs sm:text-sm font-medium mb-3 sm:mb-4">System Metrics</div>
+                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                         {stats.map((stat, index) => (
                                             <div key={index} className="text-center">
-                                                <div className="font-mono text-lg font-bold">{stat.value}</div>
+                                                <div className="font-mono text-base sm:text-lg font-bold">{stat.value}</div>
                                                 <div className="text-xs text-zinc-500">{stat.label}</div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Right Column - System Info */}
-                            <div className="col-span-3 space-y-6">
+                            </div>                            {/* Right Column - System Info */}
+                            <div className="lg:col-span-3 space-y-4 sm:space-y-6">
                                 
                                 {/* System Health */}
-                                <div className="border border-zinc-800 rounded-lg p-6">
-                                    <div className="font-mono text-sm font-medium mb-4">System Health</div>
-                                    <div className="space-y-3">
+                                <div className="border border-zinc-800 rounded-lg p-4 sm:p-6">
+                                    <div className="font-mono text-xs sm:text-sm font-medium mb-3 sm:mb-4">System Health</div>
+                                    <div className="space-y-2 sm:space-y-3">
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs text-zinc-500 font-mono">CPU</span>
                                             <div className="flex items-center space-x-2">
@@ -244,9 +238,9 @@ export default function SplashScreen({ onComplete, duration = 3000 }) {
                                 </div>
 
                                 {/* Security Status */}
-                                <div className="border border-zinc-800 rounded-lg p-6">
-                                    <div className="font-mono text-sm font-medium mb-4">Security</div>
-                                    <div className="space-y-3">
+                                <div className="border border-zinc-800 rounded-lg p-4 sm:p-6">
+                                    <div className="font-mono text-xs sm:text-sm font-medium mb-3 sm:mb-4">Security</div>
+                                    <div className="space-y-2 sm:space-y-3">
                                         <div className="flex items-center space-x-2">
                                             <Zap className="w-3 h-3" />
                                             <span className="text-xs font-mono">Encrypted Connection</span>
@@ -264,15 +258,13 @@ export default function SplashScreen({ onComplete, duration = 3000 }) {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* Footer */}
-                <div className="flex-none border-t border-zinc-800 p-6">
-                    <div className="max-w-7xl mx-auto flex items-center justify-between">
+                </div>                {/* Footer */}
+                <div className="flex-none border-t border-zinc-800 p-4 sm:p-6">
+                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
                         <div className="text-xs text-zinc-500 font-mono">
                             © 2025 Financial Intelligence Platform
                         </div>
-                        <div className="flex items-center space-x-4 text-xs text-zinc-500 font-mono">
+                        <div className="flex items-center space-x-2 sm:space-x-4 text-xs text-zinc-500 font-mono">
                             <span>Secure</span>
                             <span>•</span>
                             <span>Reliable</span>

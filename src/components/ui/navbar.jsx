@@ -85,10 +85,10 @@ function Navbar() {
                             <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                                 <span className={`block py-2 hover:text-white transition-colors ${pathname === '/dashboard' ? 'text-white' : ''}`}>DASHBOARD</span>
                             </Link>
-                            <Link href="/analytics" onClick={() => setMobileMenuOpen(false)}>
+                            <Link href="/quick-start" onClick={() => setMobileMenuOpen(false)}>
                                 <span className={`block py-2 hover:text-white transition-colors ${pathname === '/quick-start' ? 'text-white' : ''}`}>QUICK START</span>
                             </Link>
-                            <Link href="/reports" onClick={() => setMobileMenuOpen(false)}>
+                            <Link href="/examples" onClick={() => setMobileMenuOpen(false)}>
                                 <span className={`block py-2 hover:text-white transition-colors ${pathname === '/examples' ? 'text-white' : ''}`}>EXAMPLES</span>
                             </Link>
                             <Link href="/docs" onClick={() => setMobileMenuOpen(false)}>
