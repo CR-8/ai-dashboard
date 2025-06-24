@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import SplashScreen from "@/components/ui/splash-screen";
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,14 +14,14 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 import {
   AreaChart,
   Area,
   LineChart,
   Line,
-  PieChart,
-  Pie,
   BarChart,
   Bar,
   ComposedChart,
@@ -54,7 +58,19 @@ import {
   Maximize2,
   ChevronRight,
   ExternalLink,
-  Sparkles
+  Sparkles,
+  Heart,
+  Check,
+  Settings,
+  FileText,
+  PieChart,
+  Monitor,
+  Bookmark,
+  AlertTriangle,
+  Info,
+  X,
+  Plus,
+  Minus
 } from "lucide-react";
 
 export default function ProfessionalDashboard() {
@@ -64,8 +80,20 @@ export default function ProfessionalDashboard() {
   const [currentCompany, setCurrentCompany] = useState("");
   const [selectedTab, setSelectedTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isWatchlisted, setIsWatchlisted] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [shareMessage, setShareMessage] = useState("");
+  const [showSplash, setShowSplash] = useState(true);
+  const [chartTimeframe, setChartTimeframe] = useState("6M");
+  const [exportFormat, setExportFormat] = useState("pdf");
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState("price");
+  const [watchlist, setWatchlist] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [darkMode, setDarkMode] = useState(true);
 
-  // Enhanced mock data for demonstration
+  // Enhanced mock data for demonstration - moved to top to avoid initialization issues
   const mockData = {
     companyName: "Apple Inc.",
     symbol: "AAPL", 
@@ -134,7 +162,243 @@ export default function ProfessionalDashboard() {
       { name: 'SMA 50', value: 189.2, signal: 'bullish' },
       { name: 'SMA 200', value: 172.8, signal: 'bullish' },
     ]
-  };  const handleAnalyze = async (company = searchQuery) => {
+  };
+
+  // Display data - moved to top to avoid initialization issues
+  const displayData = companyData || mockData;
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    // Load watchlist from localStorage
+    const savedWatchlist = JSON.parse(localStorage.getItem('stockWatchlist') || '[]');
+    setWatchlist(savedWatchlist);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Enhanced export functionality with multiple formats
+  const handleExportAdvanced = async (format = 'pdf') => {
+    if (!displayData) return;
+    
+    setIsExporting(true);
+    
+    try {
+      const reportData = {
+        company: displayData.companyName,
+        symbol: displayData.symbol,
+        currentPrice: displayData.currentPrice,
+        change: displayData.change,
+        changePercent: displayData.changePercent,
+        marketCap: displayData.marketCap,
+        peRatio: displayData.peRatio,
+        revenue: displayData.revenue,
+        netIncome: displayData.netIncome,
+        sector: displayData.sector,
+        lastUpdated: displayData.lastUpdated,
+        confidence: displayData.confidence,
+        volatility: displayData.volatility,
+        beta: displayData.beta,
+        dividendYield: displayData.dividendYield,
+        technicalIndicators: displayData.technicalIndicators,
+        analystRatings: displayData.analystRatings,
+        riskMetrics: displayData.riskMetrics,
+        stockData: displayData.stockData,
+        financialMetrics: displayData.financialMetrics
+      };
+
+      if (format === 'pdf') {
+        // Enhanced PDF generation
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFontSize(20);
+        doc.text(`${reportData.company} (${reportData.symbol}) Analysis`, 20, 30);
+        
+        // Current metrics
+        doc.setFontSize(12);
+        doc.text(`Current Price: $${reportData.currentPrice}`, 20, 50);
+        doc.text(`Change: ${reportData.changePercent >= 0 ? '+' : ''}${reportData.changePercent}%`, 20, 60);
+        doc.text(`Market Cap: $${formatCurrency(reportData.marketCap * 1000000000)}`, 20, 70);
+        doc.text(`P/E Ratio: ${reportData.peRatio}`, 20, 80);
+        doc.text(`Volatility: ${reportData.volatility}%`, 20, 90);
+        
+        // Technical indicators table
+        const techData = reportData.technicalIndicators.map(indicator => [
+          indicator.name, indicator.value, indicator.signal
+        ]);
+        
+        doc.autoTable({
+          head: [['Indicator', 'Value', 'Signal']],
+          body: techData,
+          startY: 100,
+          styles: { fontSize: 10 }
+        });
+        
+        // Analyst ratings table
+        const analystData = reportData.analystRatings.map(rating => [
+          rating.firm, rating.rating, `$${rating.target}`
+        ]);
+        
+        doc.autoTable({
+          head: [['Firm', 'Rating', 'Target']],
+          body: analystData,
+          startY: doc.lastAutoTable.finalY + 20,
+          styles: { fontSize: 10 }
+        });
+        
+        doc.save(`${reportData.symbol}_analysis_${new Date().toISOString().split('T')[0]}.pdf`);
+        
+      } else if (format === 'excel') {
+        // Excel export with multiple sheets
+        const workbook = XLSX.utils.book_new();
+        
+        // Overview sheet
+        const overviewData = [
+          ['Metric', 'Value'],
+          ['Company', reportData.company],
+          ['Symbol', reportData.symbol],
+          ['Current Price', `$${reportData.currentPrice}`],
+          ['Change %', `${reportData.changePercent}%`],
+          ['Market Cap', `$${formatCurrency(reportData.marketCap * 1000000000)}`],
+          ['P/E Ratio', reportData.peRatio],
+          ['Revenue (TTM)', `$${formatCurrency(reportData.revenue * 1000000000)}`],
+          ['Volatility', `${reportData.volatility}%`],
+          ['Beta', reportData.beta],
+          ['Dividend Yield', `${reportData.dividendYield}%`],
+          ['Confidence Score', `${reportData.confidence}%`]
+        ];
+        
+        const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
+        XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Overview');
+        
+        // Stock data sheet
+        const stockSheet = XLSX.utils.json_to_sheet(reportData.stockData);
+        XLSX.utils.book_append_sheet(workbook, stockSheet, 'Stock Data');
+        
+        // Financial metrics sheet
+        const financialSheet = XLSX.utils.json_to_sheet(reportData.financialMetrics);
+        XLSX.utils.book_append_sheet(workbook, financialSheet, 'Financial Metrics');
+        
+        // Technical indicators sheet
+        const techSheet = XLSX.utils.json_to_sheet(reportData.technicalIndicators);
+        XLSX.utils.book_append_sheet(workbook, techSheet, 'Technical Indicators');
+        
+        XLSX.writeFile(workbook, `${reportData.symbol}_analysis_${new Date().toISOString().split('T')[0]}.xlsx`);
+        
+      } else if (format === 'json') {
+        // JSON export
+        const jsonBlob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+        const jsonUrl = URL.createObjectURL(jsonBlob);
+        const jsonLink = document.createElement('a');
+        jsonLink.href = jsonUrl;
+        jsonLink.download = `${reportData.symbol}_analysis_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(jsonLink);
+        jsonLink.click();
+        document.body.removeChild(jsonLink);
+        URL.revokeObjectURL(jsonUrl);
+      }
+
+      setShareMessage(`Report exported as ${format.toUpperCase()} successfully!`);
+      setTimeout(() => setShareMessage(""), 3000);
+      
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      setShareMessage("Export failed. Please try again.");
+      setTimeout(() => setShareMessage(""), 3000);
+    } finally {
+      setIsExporting(false);
+      setShowExportDialog(false);
+    }
+  };
+
+  // Check if company is in watchlist
+  useEffect(() => {
+    if (currentCompany) {
+      const savedWatchlist = JSON.parse(localStorage.getItem('stockWatchlist') || '[]');
+      setIsWatchlisted(savedWatchlist.includes(currentCompany.toUpperCase()));
+    }
+  }, [currentCompany]);
+
+  // Legacy export function for backwards compatibility  
+  const handleExport = () => handleExportAdvanced('pdf');
+  const handleShare = () => handleShareAdvanced();
+  const handleWatchlist = () => handleWatchlistAdvanced();
+
+  // Enhanced watchlist functionality
+  const handleWatchlistAdvanced = useCallback(() => {
+    if (!currentCompany) return;
+    
+    const symbol = currentCompany.toUpperCase();
+    const updatedWatchlist = isWatchlisted 
+      ? watchlist.filter(item => item !== symbol)
+      : [...watchlist, symbol];
+    
+    setWatchlist(updatedWatchlist);
+    localStorage.setItem('stockWatchlist', JSON.stringify(updatedWatchlist));
+    setIsWatchlisted(!isWatchlisted);
+    
+    // Add notification
+    const notification = {
+      id: Date.now(),
+      message: isWatchlisted 
+        ? `${symbol} removed from watchlist` 
+        : `${symbol} added to watchlist`,
+      type: 'success'
+    };
+    
+    setNotifications(prev => [notification, ...prev.slice(0, 4)]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, 3000);
+  }, [currentCompany, isWatchlisted, watchlist]);
+
+  // Chart timeframe data filtering
+  const getFilteredChartData = useCallback(() => {
+    if (!displayData?.stockData) return [];
+    
+    const data = displayData.stockData;
+    switch (chartTimeframe) {
+      case '1M': return data.slice(-1);
+      case '3M': return data.slice(-3);
+      case '6M': return data.slice(-6);
+      case '1Y': return data;
+      case '5Y': return data; // Would need more data points in real implementation
+      default: return data;
+    }
+  }, [displayData, chartTimeframe]);
+
+  // Enhanced sharing functionality
+  const handleShareAdvanced = async () => {
+    if (!displayData) return;
+    
+    const shareData = {
+      title: `${displayData.companyName} (${displayData.symbol}) Financial Analysis`,
+      text: `🔍 ${displayData.companyName} Analysis\n💰 Price: $${displayData.currentPrice}\n📈 Change: ${displayData.change >= 0 ? '+' : ''}${displayData.changePercent}%\n🏢 Market Cap: $${formatCurrency(displayData.marketCap * 1000000000)}\n📊 Confidence: ${displayData.confidence}%`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.title}\n\n${shareData.text}\n\nView analysis: ${shareData.url}`);
+        setShareMessage("Analysis copied to clipboard!");
+        setTimeout(() => setShareMessage(""), 3000);
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      setShareMessage("Unable to share. Please try again.");
+      setTimeout(() => setShareMessage(""), 3000);
+    }
+  };
+
+  const handleAnalyze = async (company = searchQuery) => {
     if (!company.trim()) return;
     
     setLoading(true);
@@ -237,7 +501,15 @@ export default function ProfessionalDashboard() {
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  const displayData = companyData || mockData;
+  // Handle splash screen completion
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
+  // Show splash screen on first load
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} duration={6000} />;
+  }
 
   // Chart configurations with enhanced colors
   const chartConfig = {
@@ -287,90 +559,168 @@ export default function ProfessionalDashboard() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-black text-white">
-        <div className="max-w-[1600px] mx-auto p-6 space-y-6">
+      <div className="min-h-screen bg-black text-white overflow-x-hidden">
+        {/* Notifications */}
+        <div className="fixed top-4 right-4 z-50 space-y-2">
+          {notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-lg animate-in slide-in-from-right-full duration-300"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-mono text-white">{notification.message}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-1"
+                  onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="max-w-[1600px] mx-auto px-3 py-6 space-y-6">
           
-          {/* Header Section */}
+          {/* Header */}
           <div className="space-y-6">
-            {/* Title */}
+            {/* Brand Header */}
             <div className="text-center space-y-2">
-              <h1 className="text-4xl font-mono font-light tracking-[0.2em] text-white">
-                FINANCIAL INTELLIGENCE
-              </h1>
-              <p className="text-sm text-zinc-500 font-mono uppercase tracking-wider">
-                Advanced Market Analysis Platform
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-8 h-8 bg-white rounded-sm flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-black" />
+                </div>
+                <h1 className="text-3xl font-mono font-light tracking-[0.25em] text-white">
+                  MARKETS
+                </h1>
+              </div>
+              <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider">
+                Professional Analysis Dashboard
               </p>
             </div>
 
-            {/* Search Interface */}
-            <Card className="bg-zinc-950 border-zinc-800">
+            {/* Search & Controls */}
+            <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm">
               <CardContent className="p-6">
-                <div className="flex gap-3 mb-4">
+                <div className="flex flex-col lg:flex-row gap-4">
+                  
+                  {/* Search Input */}
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-500" />
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder="Enter ticker symbol (AAPL, MSFT, TSLA...)"
+                      placeholder="Search symbol (AAPL, MSFT, GOOGL...)"
                       disabled={loading}
-                      className="pl-10 bg-zinc-900 border-zinc-700 text-white font-mono focus:border-white"
+                      className="pl-10 bg-zinc-900/50 border-zinc-700/50 text-white font-mono focus:border-white/50 transition-colors"
                     />
                   </div>
-                  <Button
-                    onClick={() => handleAnalyze()}
-                    disabled={loading || !searchQuery.trim()}
-                    className="min-w-[120px] font-mono"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                        ANALYZING
-                      </>
-                    ) : (
-                      <>
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        ANALYZE
-                      </>
-                    )}
-                  </Button>
-                  {companyData && (
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
                     <Button
-                      onClick={handleRefresh}
-                      disabled={refreshing}
-                      variant="outline"
-                      className="font-mono"
+                      onClick={() => handleAnalyze()}
+                      disabled={loading || !searchQuery.trim()}
+                      className="bg-white text-black hover:bg-zinc-200 font-mono px-6"
                     >
-                      <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                      {loading ? (
+                        <>
+                          <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                          ANALYZE
+                        </>
+                      ) : (
+                        'ANALYZE'
+                      )}
                     </Button>
-                  )}
+                    
+                    {companyData && (
+                      <Button
+                        onClick={handleRefresh}
+                        disabled={refreshing}
+                        variant="outline"
+                        className="border-zinc-700 text-zinc-200 hover:border-zinc-600 font-mono"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                      </Button>
+                    )}
+                    
+                    <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          disabled={!displayData}
+                          className="border-zinc-700 text-zinc-200 hover:border-zinc-600 font-mono"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-zinc-950 border-zinc-800">
+                        <DialogHeader>
+                          <DialogTitle className="font-mono text-white">Export Report</DialogTitle>
+                          <DialogDescription className="font-mono text-zinc-400">
+                            Choose your preferred export format
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <Select value={exportFormat} onValueChange={setExportFormat}>
+                            <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white font-mono">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-zinc-900 border-zinc-700">
+                              <SelectItem value="pdf" className="font-mono text-white">PDF Report</SelectItem>
+                              <SelectItem value="excel" className="font-mono text-white">Excel Spreadsheet</SelectItem>
+                              <SelectItem value="json" className="font-mono text-white">JSON Data</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleExportAdvanced(exportFormat)}
+                              disabled={isExporting}
+                              className="flex-1 bg-white text-black hover:bg-zinc-200 font-mono"
+                            >
+                              {isExporting ? (
+                                <>
+                                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                                  Exporting...
+                                </>
+                              ) : (
+                                'Export'
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowExportDialog(false)}
+                              className="border-zinc-700 font-mono"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
 
-                {/* Quick Access Symbols */}
-                <div className="flex flex-wrap gap-2">
+                {/* Quick Access */}
+                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-zinc-800/50">
                   {[
-                    { symbol: 'AAPL', name: 'Apple' },
-                    { symbol: 'MSFT', name: 'Microsoft' },
-                    { symbol: 'GOOGL', name: 'Google' },
-                    { symbol: 'TSLA', name: 'Tesla' },
-                    { symbol: 'AMZN', name: 'Amazon' },
-                    { symbol: 'META', name: 'Meta' },
-                    { symbol: 'NVDA', name: 'NVIDIA' },
-                    { symbol: 'NFLX', name: 'Netflix' }
-                  ].map((stock) => (
+                    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX'
+                  ].map((symbol) => (
                     <Button
-                      key={stock.symbol}
+                      key={symbol}
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setSearchQuery(stock.symbol);
-                        handleAnalyze(stock.symbol);
+                        setSearchQuery(symbol);
+                        handleAnalyze(symbol);
                       }}
                       disabled={loading}
-                      className="font-mono text-xs border text-zinc-200 border-zinc-800 hover:border-zinc-600"
-                      title={stock.name}
+                      className="font-mono text-xs border border-zinc-800/50 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900/50 transition-colors"
                     >
-                      {stock.symbol}
+                      {symbol}
                     </Button>
                   ))}
                 </div>
@@ -379,44 +729,28 @@ export default function ProfessionalDashboard() {
           </div>
           {/* Loading State */}
           {loading && (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <Card className="bg-zinc-950 border-zinc-800 col-span-full">
-                <CardContent className="p-8 text-center">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p className="text-zinc-500 font-mono text-sm">Processing market data...</p>
-                </CardContent>
-              </Card>
-              {[...Array(4)].map((_, i) => (
-                <Card key={i} className="bg-zinc-950 border-zinc-800">
-                  <CardContent className="p-6">
-                    <div className="animate-pulse space-y-3">
-                      <div className="h-3 bg-zinc-800 rounded w-1/2"></div>
-                      <div className="h-6 bg-zinc-800 rounded w-3/4"></div>
-                      <div className="h-2 bg-zinc-800 rounded w-1/3"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <SplashScreen onComplete={() => {}} duration={6500} />
           )}
 
           {/* Dashboard Content */}
           {displayData && !loading && (
             <div className="space-y-6">
               
-              {/* Company Header */}
-              <Card className="bg-zinc-950 border-zinc-800">
+              {/* Company Overview */}
+              <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-2xl text-zinc-200 font-mono font-light tracking-wider">
+                  <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
+                    
+                    {/* Company Info */}
+                    <div className="space-y-4 flex-1">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h2 className="text-2xl font-mono font-light text-white tracking-wide">
                           {displayData.companyName}
                         </h2>
-                        <Badge variant="outline" className="font-mono text-xs">
+                        <Badge variant="outline" className="font-mono text-white border-zinc-600">
                           {displayData.symbol}
                         </Badge>
-                        <Badge className="bg-zinc-800 text-zinc-300 font-mono text-xs">
+                        <Badge className="bg-zinc-800 text-zinc-300 font-mono">
                           {displayData.sector}
                         </Badge>
                         {displayData.dataQuality?.realTimeData && (
@@ -437,29 +771,25 @@ export default function ProfessionalDashboard() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-zinc-500 font-mono">
+                      
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400 font-mono">
                         <span>Market Cap: ${formatCurrency(displayData.marketCap * 1000000000)}</span>
-                        <Separator orientation="vertical" className="h-4" />
+                        <Separator orientation="vertical" className="h-4 hidden md:block" />
                         <span>Updated: {getTimeAgo(displayData.lastUpdated)}</span>
-                        <Separator orientation="vertical" className="h-4" />
-                        <span className="flex items-center gap-1">
+                        <Separator orientation="vertical" className="h-4 hidden md:block" />
+                        <div className="flex items-center gap-1">
                           <Signal className="h-3 w-3" />
-                          Confidence: {displayData.confidence}%
-                        </span>
-                        {displayData.dataQuality?.sources && (
-                          <>
-                            <Separator orientation="vertical" className="h-4" />
-                            <span className="flex items-center gap-1">
-                              <Globe className="h-3 w-3" />
-                              {displayData.dataQuality.sources.length} Sources
-                            </span>
-                          </>
-                        )}
+                          <span>Confidence: {displayData.confidence}%</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right space-y-1">
-                      <div className="text-3xl text-zinc-200 font-mono font-light">${displayData.currentPrice.toFixed(2)}</div>
-                      <div className="flex items-center justify-end gap-1">
+                    
+                    {/* Price Info */}
+                    <div className="text-right space-y-2">
+                      <div className="text-3xl font-mono font-light text-white">
+                        ${displayData.currentPrice.toFixed(2)}
+                      </div>
+                      <div className="flex items-center justify-end gap-2">
                         {displayData.change >= 0 ? 
                           <ArrowUpRight className="h-4 w-4 text-green-400" /> : 
                           <ArrowDownRight className="h-4 w-4 text-red-400" />
@@ -470,20 +800,61 @@ export default function ProfessionalDashboard() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Action Bar */}
+                  <div className="flex flex-wrap gap-3 mt-6 pt-6 text-zinc-200 border-t border-zinc-800/50">
+                    <Button
+                      onClick={handleWatchlistAdvanced}
+                      variant={isWatchlisted ? "default" : "outline"}
+                      className={`font-mono ${isWatchlisted ? 'bg-white text-black hover:bg-zinc-200' : 'border-zinc-700 hover:border-zinc-600'}`}
+                    >
+                      {isWatchlisted ? (
+                        <>
+                          <Heart className="h-4 w-4 mr-2 fill-current" />
+                          WATCHING
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          WATCH
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      onClick={handleShareAdvanced}
+                      variant="outline"
+                      className="font-mono border-zinc-700 text-zinc-200 hover:border-zinc-600"
+                    >
+                      <Share className="h-4 w-4 mr-2" />
+                      SHARE
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      className="font-mono border-zinc-700 text-zinc-200 hover:border-zinc-600"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      ALERTS
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
               {/* Bento Grid Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
                 
-                {/* Key Metrics - Top Row */}
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-3">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Market Cap</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="text-2xl font-mono font-light text-white">${formatCurrency(displayData.marketCap * 1000000000)}</div>
+                {/* Key Metrics Row */}
+                <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm lg:col-span-3 group hover:bg-zinc-950/70 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">Market Cap</span>
+                        <Building2 className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                      </div>
+                      <div className="text-2xl font-mono font-light text-white">
+                        ${formatCurrency(displayData.marketCap * 1000000000)}
+                      </div>
                       <div className="flex items-center text-xs text-green-400">
                         <TrendingUp className="h-3 w-3 mr-1" />
                         +8.2% vs sector
@@ -492,25 +863,31 @@ export default function ProfessionalDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-3">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">P/E Ratio</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="text-2xl font-mono font-light text-white">{displayData.peRatio.toFixed(1)}</div>
+                <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm lg:col-span-3 group hover:bg-zinc-950/70 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">P/E Ratio</span>
+                        <Target className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                      </div>
+                      <div className="text-2xl font-mono font-light text-white">
+                        {displayData.peRatio.toFixed(1)}
+                      </div>
                       <div className="text-xs text-zinc-400">Industry avg: 24.8</div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-3">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Revenue (TTM)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="text-2xl font-mono font-light text-white">${formatCurrency(displayData.revenue * 1000000000)}</div>
+                <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm lg:col-span-3 group hover:bg-zinc-950/70 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">Revenue (TTM)</span>
+                        <DollarSign className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                      </div>
+                      <div className="text-2xl font-mono font-light text-white">
+                        ${formatCurrency(displayData.revenue * 1000000000)}
+                      </div>
                       <div className="flex items-center text-xs text-green-400">
                         <TrendingUp className="h-3 w-3 mr-1" />
                         +12.4% YoY
@@ -519,84 +896,94 @@ export default function ProfessionalDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-3">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Volatility</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="text-2xl font-mono font-light text-white">{displayData.volatility}%</div>
+                <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm lg:col-span-3 group hover:bg-zinc-950/70 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">Volatility</span>
+                        <Activity className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                      </div>
+                      <div className="text-2xl font-mono font-light text-white">
+                        {displayData.volatility}%
+                      </div>
                       <div className="text-xs text-zinc-400">30-day average</div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Main Chart - Large */}
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-8">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
+                {/* Main Price Chart */}
+                <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm md:col-span-2 lg:col-span-8">
+                  <CardHeader className="pb-4">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                       <div>
-                        <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Price Performance</CardTitle>
-                        <CardDescription className="font-mono text-zinc-400">6-month price movement with volume</CardDescription>
+                        <CardTitle className="text-sm font-mono text-white uppercase tracking-wider">
+                          Price Performance
+                        </CardTitle>
+                        <CardDescription className="font-mono text-zinc-400 text-xs">
+                          Interactive price chart with technical analysis
+                        </CardDescription>
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" className="text-xs font-mono text-zinc-300">6M</Button>
-                        <Button variant="ghost" size="sm" className="text-xs font-mono text-zinc-300">1Y</Button>
-                        <Button variant="ghost" size="sm" className="text-xs font-mono text-zinc-300">5Y</Button>
+                        {['1M', '3M', '6M', '1Y', '5Y'].map((period) => (
+                          <Button
+                            key={period}
+                            variant={chartTimeframe === period ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setChartTimeframe(period)}
+                            className={`font-mono text-xs px-3 py-1 ${
+                              chartTimeframe === period 
+                                ? 'bg-white text-black' 
+                                : 'hover:bg-zinc-800 text-zinc-300'
+                            }`}
+                          >
+                            {period}
+                          </Button>
+                        ))}
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <ChartContainer config={chartConfig} className="h-full">
+                  <CardContent className="p-6 pt-0">
+                    <ChartContainer config={chartConfig} className="h-[300px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={displayData.stockData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                        <ComposedChart 
+                          data={getFilteredChartData()} 
+                          margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                        >
                           <defs>
                             <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05}/>
+                              <stop offset="5%" stopColor="#ffffff" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#ffffff" stopOpacity={0.05}/>
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                          <CartesianGrid strokeDasharray="1 1" stroke="#404040" opacity={0.3} />
                           <XAxis 
                             dataKey="date" 
-                            stroke="#a1a1aa" 
-                            fontSize={11} 
+                            stroke="#71717a" 
+                            fontSize={10} 
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            tickMargin={10}
+                            tick={{ fill: '#71717a' }}
                           />
                           <YAxis 
-                            yAxisId="price"
-                            stroke="#a1a1aa" 
-                            fontSize={11} 
+                            stroke="#71717a" 
+                            fontSize={10} 
                             tickFormatter={(value) => `$${value}`}
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            width={60}
+                            tick={{ fill: '#71717a' }}
+                            width={40}
                           />
-                          <YAxis 
-                            yAxisId="volume"
-                            orientation="right"
-                            stroke="#a1a1aa" 
-                            fontSize={11} 
-                            tickFormatter={(value) => `${value}B`}
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            width={60}
+                          <ChartTooltip 
+                            content={<ChartTooltipContent className="bg-zinc-900 text-zinc-200 border-zinc-700" />}
                           />
-                          <ChartTooltip content={<ChartTooltipContent />} className="text-zinc-300"/>
                           <Area 
-                            yAxisId="price"
                             type="monotone" 
                             dataKey="price" 
-                            stroke="#3b82f6" 
+                            stroke="#ffffff" 
                             fill="url(#priceGradient)" 
                             strokeWidth={2}
+                            dot={false}
                           />
-                          <Bar yAxisId="volume" dataKey="volume" fill="#8b5cf6" opacity={0.6} />
                         </ComposedChart>
                       </ResponsiveContainer>
                     </ChartContainer>
@@ -604,14 +991,16 @@ export default function ProfessionalDashboard() {
                 </Card>
 
                 {/* Technical Indicators */}
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-4">
-                  <CardHeader>
-                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Technical Signals</CardTitle>
+                <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm md:col-span-2 lg:col-span-4">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-sm font-mono text-white uppercase tracking-wider">
+                      Technical Signals
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-4">
                     {displayData.technicalIndicators.map((indicator, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm font-mono text-zinc-200">{indicator.name}</span>
+                      <div key={index} className="flex items-center justify-between group">
+                        <span className="text-sm font-mono text-zinc-300">{indicator.name}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-mono text-white">{indicator.value}</span>
                           <Badge 
@@ -626,51 +1015,57 @@ export default function ProfessionalDashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Financial Metrics Chart */}
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-6">
-                  <CardHeader>
-                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Financial Performance</CardTitle>
-                    <CardDescription className="font-mono text-zinc-400">Quarterly revenue and profit trends</CardDescription>
+                {/* Financial Performance Chart */}
+                <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm md:col-span-2 lg:col-span-6">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-sm font-mono text-white uppercase tracking-wider">
+                      Financial Metrics
+                    </CardTitle>
+                    <CardDescription className="font-mono text-zinc-400 text-xs">
+                      Quarterly performance trends
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-full">
+                    <ChartContainer config={chartConfig} className="h-[250px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={displayData.financialMetrics} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                        <ComposedChart 
+                          data={displayData.financialMetrics} 
+                          margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="1 1" stroke="#404040" opacity={0.3} />
                           <XAxis 
                             dataKey="quarter" 
-                            stroke="#a1a1aa" 
-                            fontSize={11}
+                            stroke="#71717a" 
+                            fontSize={10}
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            tickMargin={10}
+                            tick={{ fill: '#71717a' }}
                           />
                           <YAxis 
                             yAxisId="revenue"
-                            stroke="#a1a1aa" 
-                            fontSize={11} 
+                            stroke="#71717a" 
+                            fontSize={10} 
                             tickFormatter={(value) => `$${value}B`}
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            width={60}
+                            tick={{ fill: '#71717a' }}
+                            width={35}
                           />
                           <YAxis 
                             yAxisId="eps"
                             orientation="right"
-                            stroke="#a1a1aa" 
-                            fontSize={11} 
+                            stroke="#71717a" 
+                            fontSize={10} 
                             tickFormatter={(value) => `$${value}`}
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            width={60}
+                            tick={{ fill: '#71717a' }}
+                            width={30}
                           />
-                          <ChartTooltip content={<ChartTooltipContent />} className="text-zinc-300"/>
-                          <Bar yAxisId="revenue" dataKey="revenue" fill="#06b6d4" />
-                          <Bar yAxisId="revenue" dataKey="profit" fill="#10b981" />
-                          <Line yAxisId="eps" type="monotone" dataKey="eps" stroke="#f59e0b" strokeWidth={3} dot={{ fill: '#f59e0b', r: 4 }} />
+                          <ChartTooltip content={<ChartTooltipContent className="bg-zinc-900 text-zinc-200 border-zinc-700" />} />
+                          <Bar yAxisId="revenue" dataKey="revenue" fill="#ffffff" opacity={0.8} />
+                          <Bar yAxisId="revenue" dataKey="profit" fill="#71717a" opacity={0.6} />
+                          <Line yAxisId="eps" type="monotone" dataKey="eps" stroke="#ffffff" strokeWidth={2} dot={{ fill: '#ffffff', r: 3 }} />
                         </ComposedChart>
                       </ResponsiveContainer>
                     </ChartContainer>
@@ -678,127 +1073,89 @@ export default function ProfessionalDashboard() {
                 </Card>
 
                 {/* Market Position */}
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-6">
-                  <CardHeader>
-                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Market Position</CardTitle>
-                    <CardDescription className="font-mono text-zinc-400">Competitive landscape analysis</CardDescription>
+                <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm md:col-span-2 lg:col-span-6">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-sm font-mono text-white uppercase tracking-wider">
+                      Market Position
+                    </CardTitle>
+                    <CardDescription className="font-mono text-zinc-400 text-xs">
+                      Competitive landscape
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-full">
+                    <ChartContainer config={chartConfig} className="h-[250px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={displayData.competitorAnalysis} layout="horizontal" margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                        <BarChart 
+                          data={displayData.competitorAnalysis }
+                          className="ml-4"
+                          layout="vertical" 
+                          margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="1 1" stroke="#404040" opacity={0.3} />
                           <XAxis 
                             type="number"
-                            stroke="#a1a1aa" 
-                            fontSize={11} 
+                            stroke="#71717a" 
+                            fontSize={10} 
                             tickFormatter={(value) => `${value}%`}
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            tickMargin={10}
+                            tick={{ fill: '#71717a' }}
                             domain={[0, 35]}
                           />
                           <YAxis 
                             dataKey="name" 
                             type="category"
-                            stroke="#a1a1aa" 
-                            fontSize={11} 
+                            stroke="#71717a" 
+                            fontSize={10} 
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            width={80}
+                            tick={{ fill: '#71717a' }}
+                            width={60}
                           />
                           <ChartTooltip 
-                            content={<ChartTooltipContent />} 
-                            className="text-zinc-300"
+                            content={<ChartTooltipContent className="bg-zinc-900 text-zinc-200 border-zinc-700" />}
                           />
                           <Bar 
                             dataKey="marketShare" 
-                            radius={[0, 4, 4, 0]}
-                          >
-                            {displayData.competitorAnalysis.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={entry.color}
-                              />
-                            ))}
-                          </Bar>
+                            className="m-4"
+                            radius={[0, 2, 2, 0]}
+                            fill="#ffffff"
+                            opacity={0.8}
+                          />
                         </BarChart>
                       </ResponsiveContainer>
                     </ChartContainer>
-                  </CardContent>
-                </Card> 
-
-                {/* Analyst Ratings */}
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-4">
-                  <CardHeader>
-                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Analyst Consensus</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {displayData.analystRatings.slice(0, 5).map((rating, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div className="text-sm font-mono text-zinc-200">{rating.firm}</div>
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            variant={rating.rating === 'BUY' || rating.rating === 'OVERWEIGHT' || rating.rating === 'OUTPERFORM' ? 'default' : 'secondary'}
-                            className="text-xs font-mono"
-                          >
-                            {rating.rating}
-                          </Badge>
-                          <span className="text-xs font-mono text-zinc-400">${rating.target}</span>
-                        </div>
-                      </div>
-                    ))}
                   </CardContent>
                 </Card>
 
-                {/* Sector Performance */}
-                <Card className="bg-zinc-950 border-zinc-800 lg:col-span-8">
-                  <CardHeader>
-                    <CardTitle className="text-sm font-mono text-zinc-300 uppercase tracking-wider">Sector Performance</CardTitle>
-                    <CardDescription className="font-mono text-zinc-400">Year-to-date sector comparison</CardDescription>
+                {/* Analyst Ratings */}
+                <Card className="bg-zinc-950/50 border-zinc-800/50 backdrop-blur-sm md:col-span-2 lg:col-span-12">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-sm font-mono text-white uppercase tracking-wider">
+                      Analyst Consensus
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={displayData.sectorPerformance} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
-                          <XAxis 
-                            dataKey="sector" 
-                            stroke="#a1a1aa" 
-                            fontSize={11}
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            tickMargin={10}
-                          />
-                          <YAxis 
-                            stroke="#a1a1aa" 
-                            fontSize={11} 
-                            tickFormatter={(value) => `${value}%`}
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#a1a1aa' }}
-                            width={50}
-                          />
-                          <ChartTooltip content={<ChartTooltipContent />} className="text-zinc-300" />
-                          <Bar dataKey="performance">
-                            {displayData.sectorPerformance.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={entry.performance >= 0 ? colors.success : colors.danger}
-                              />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                      {displayData.analystRatings.slice(0, 5).map((rating, index) => (
+                        <div key={index} className="space-y-2 p-4 rounded-lg bg-zinc-900/50 border border-zinc-800/50">
+                          <div className="text-sm font-mono text-zinc-300">{rating.firm}</div>
+                          <div className="flex items-center justify-between">
+                            <Badge 
+                              variant={rating.rating === 'BUY' || rating.rating === 'OVERWEIGHT' || rating.rating === 'OUTPERFORM' ? 'default' : 'secondary'}
+                              className="text-xs font-mono bg-white text-black"
+                            >
+                              {rating.rating}
+                            </Badge>
+                            <span className="text-sm font-mono text-white">${rating.target}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
-
-              {/* News and Insights Section */}
+{/* News and Insights Section */}
               {displayData.news && displayData.news.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                   {/* Latest News */}
@@ -931,22 +1288,6 @@ export default function ProfessionalDashboard() {
                   </CardContent>
                 </Card>
               )}
-
-              {/* Action Buttons */}
-              <div className="flex justify-center gap-3 pt-6">
-                <Button variant="outline" className="font-mono">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Report
-                </Button>
-                <Button variant="outline" className="font-mono">
-                  <Share className="h-4 w-4 mr-2" />
-                  Share Analysis
-                </Button>
-                <Button variant="outline" className="font-mono">
-                  <Eye className="h-4 w-4 mr-2" />
-                  Watch List
-                </Button>
-              </div>
             </div>
           )}
         </div>

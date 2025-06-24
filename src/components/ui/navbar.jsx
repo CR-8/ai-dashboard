@@ -59,9 +59,10 @@ function Navbar() {
                             <Link href="/docs">
                                 <span className={`navbar-link hover:text-white cursor-pointer transition-colors ${pathname === '/docs' ? 'text-white' : ''}`}>DOCS</span>
                             </Link>
-                        </div><div className="flex items-center gap-4 text-xs text-neutral-500">
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-neutral-500">
                             <div className="hidden md:flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
                                 <span>LIVE {time}</span>
                             </div>
                             <Link href="/">

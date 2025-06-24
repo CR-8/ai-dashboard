@@ -24,12 +24,24 @@ import {
   Clock,
   ChevronDown
 } from 'lucide-react'
+import SplashScreen from "@/components/ui/splash-screen2";
+
+
+
 
 function Docs() {
   const [searchQuery, setSearchQuery] = useState('')
   const [copiedCode, setCopiedCode] = useState('')
   const [activeSection, setActiveSection] = useState('getting-started')
+  const [showSplash, setShowSplash] = useState(true);
 
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} duration={6000} />;
+  }
   const navigation = [
     {
       title: 'Getting Started',

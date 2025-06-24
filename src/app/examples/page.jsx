@@ -1,5 +1,8 @@
-import React from 'react'
+"use client";
+
+import React , {useState} from 'react'
 import { TrendingUp, Users, DollarSign, BarChart3, Eye, ArrowUpRight, Activity, Target, Zap, Settings, Calendar, Filter } from 'lucide-react'
+import SplashScreen from "@/components/ui/splash-screen2";
 
 function Example() {
   const examples = [
@@ -73,7 +76,16 @@ function Example() {
   ]
 
   const categories = ['All', 'Analytics', 'Performance', 'Forecasting', 'Monitoring']
+  
+  const [showSplash, setShowSplash] = useState(true);
 
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} duration={6000} />;
+  }
   return (
     <div className="min-h-screen bg-black text-white font-mono">
       <div className="max-w-7xl mx-auto px-6 py-16">
