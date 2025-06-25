@@ -92,13 +92,13 @@ function Navbar() {
                             </div>
                             <span className="font-mono font-bold text-sm tracking-tight">FIN-ANALYTICS</span>
                         </Link>
-                    </div>                    {/* Navigation Links */}
+                    </div>                    
+                    {/* Navigation Links */}
                     <div className="hidden md:flex items-center gap-1">
                         {[
                             { href: '/dashboard', label: 'Dashboard' },
-                            { href: '/quick-start', label: 'Quick Start' },
-                            { href: '/examples', label: 'Examples' },
-                            { href: '/docs', label: 'Docs' }
+                            { href: '/market', label: 'Market' },
+                            { href: '/news', label: 'News' },
                         ].map((item) => (
                             <Link key={item.href} href={item.href}>
                                 <div className={`px-4 py-2 font-mono text-xs hover:bg-zinc-900 transition-colors border border-transparent hover:border-zinc-800 ${
@@ -108,7 +108,8 @@ function Navbar() {
                                 </div>
                             </Link>
                         ))}
-                    </div>                    {/* Right Section */}
+                    </div>                    
+                    {/* Right Section */}
                     <div className="flex items-center gap-4">
                         {/* Status Indicator */}
                         <div className="hidden md:flex items-center gap-3 px-3 py-2 border border-zinc-800 bg-zinc-950">
@@ -176,7 +177,8 @@ function Navbar() {
                             {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
                         </button>
                     </div>
-                </div>                </div>
+                </div>                
+            </div>
             
             {/* Mobile Menu */}
             {mobileMenuOpen && (
@@ -186,9 +188,8 @@ function Navbar() {
                         <div className="space-y-1 mb-6">
                             {[
                                 { href: '/dashboard', label: 'Dashboard' },
-                                { href: '/quick-start', label: 'Quick Start' },
-                                { href: '/examples', label: 'Examples' },
-                                { href: '/docs', label: 'Docs' }
+                                { href: '/market', label: 'Market' },
+                                { href: '/news', label: 'News' },
                             ].map((item) => (
                                 <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}>
                                     <div className={`px-4 py-3 font-mono text-xs border border-zinc-800 hover:bg-zinc-900 transition-colors ${
