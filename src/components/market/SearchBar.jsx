@@ -82,7 +82,7 @@ const SearchBar = ({
       />
       <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
         <kbd className="px-2 py-1 text-xs font-mono text-gray-200 bg-gray-800 border border-gray-700 rounded">
-          ⌘K
+          ⌘ K
         </kbd>
       </div>
 

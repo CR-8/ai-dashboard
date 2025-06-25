@@ -1,5 +1,30 @@
 import { NextResponse } from 'next/server';
 
+// Generate realistic stock data with proper fluctuations
+function generateStockData(baseStock, type) {
+  let multiplier = 1;
+  
+  // Adjust change based on type
+  if (type === 'gainers') {
+    multiplier = Math.random() * 3 + 2; // 2-5x positive
+  } else if (type === 'losers') {
+    multiplier = -(Math.random() * 3 + 2); // 2-5x negative
+  } else {
+    multiplier = (Math.random() - 0.5) * 4; // -2 to +2
+  }
+  
+  const change = baseStock.baseChange * multiplier;
+  const changePercent = (change / baseStock.basePrice) * 100;
+  const price = baseStock.basePrice + change;
+  
+  return {
+    ...baseStock,
+    price: parseFloat(price.toFixed(2)),
+    change: parseFloat(change.toFixed(2)),
+    changePercent: parseFloat(changePercent.toFixed(2))
+  };
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -8,35 +33,46 @@ export async function GET(request) {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Mock data - replace with real API calls
-    const stocksData = {
-      trending: [
-        { symbol: 'TSLA', name: 'Tesla Inc', price: 248.87 + (Math.random() - 0.5) * 20, change: (Math.random() - 0.5) * 15, changePercent: (Math.random() - 0.5) * 6, marketCap: '791.2B', volume: '45.2M' },
-        { symbol: 'NVDA', name: 'NVIDIA Corporation', price: 521.13 + (Math.random() - 0.5) * 40, change: (Math.random() - 0.5) * 25, changePercent: (Math.random() - 0.5) * 8, marketCap: '1.28T', volume: '52.8M' },
-        { symbol: 'AAPL', name: 'Apple Inc', price: 189.79 + (Math.random() - 0.5) * 10, change: (Math.random() - 0.5) * 8, changePercent: (Math.random() - 0.5) * 4, marketCap: '2.95T', volume: '38.9M' },
-        { symbol: 'GOOGL', name: 'Alphabet Inc', price: 134.78 + (Math.random() - 0.5) * 8, change: (Math.random() - 0.5) * 6, changePercent: (Math.random() - 0.5) * 3, marketCap: '1.68T', volume: '25.6M' },
-        { symbol: 'MSFT', name: 'Microsoft Corporation', price: 378.92 + (Math.random() - 0.5) * 15, change: (Math.random() - 0.5) * 12, changePercent: (Math.random() - 0.5) * 5, marketCap: '2.81T', volume: '28.4M' },
-        { symbol: 'META', name: 'Meta Platforms Inc', price: 325.45 + (Math.random() - 0.5) * 20, change: (Math.random() - 0.5) * 15, changePercent: (Math.random() - 0.5) * 6, marketCap: '826.5B', volume: '18.7M' },
-        { symbol: 'AMZN', name: 'Amazon.com Inc', price: 142.31 + (Math.random() - 0.5) * 8, change: (Math.random() - 0.5) * 6, changePercent: (Math.random() - 0.5) * 4, marketCap: '1.48T', volume: '33.2M' },
-        { symbol: 'AMD', name: 'Advanced Micro Devices', price: 142.56 + (Math.random() - 0.5) * 12, change: (Math.random() - 0.5) * 8, changePercent: (Math.random() - 0.5) * 5, marketCap: '230.1B', volume: '62.1M' }
-      ],
-      gainers: [
-        { symbol: 'NVDA', name: 'NVIDIA Corporation', price: 521.13, change: 24.67, changePercent: 4.97, marketCap: '1.28T', volume: '52.8M' },
-        { symbol: 'AMD', name: 'Advanced Micro Devices', price: 142.56, change: 8.89, changePercent: 6.55, marketCap: '230.1B', volume: '62.1M' },
-        { symbol: 'TSLA', name: 'Tesla Inc', price: 248.87, change: 12.42, changePercent: 5.26, marketCap: '791.2B', volume: '45.2M' },
-        { symbol: 'MSFT', name: 'Microsoft Corporation', price: 378.92, change: 15.34, changePercent: 4.23, marketCap: '2.81T', volume: '28.4M' }
-      ],
-      losers: [
-        { symbol: 'META', name: 'Meta Platforms Inc', price: 325.45, change: -12.67, changePercent: -3.75, marketCap: '826.5B', volume: '18.7M' },
-        { symbol: 'AMZN', name: 'Amazon.com Inc', price: 142.31, change: -8.45, changePercent: -5.61, marketCap: '1.48T', volume: '33.2M' },
-        { symbol: 'AAPL', name: 'Apple Inc', price: 189.79, change: -4.15, changePercent: -2.14, marketCap: '2.95T', volume: '38.9M' },
-        { symbol: 'GOOGL', name: 'Alphabet Inc', price: 134.78, change: -3.89, changePercent: -2.81, marketCap: '1.68T', volume: '25.6M' }
-      ]
-    };
+    // Base stock data
+    const baseStocks = [
+      { symbol: 'TSLA', name: 'Tesla Inc', basePrice: 248.87, baseChange: 5.2, marketCap: '791.2B', volume: '45.2M' },
+      { symbol: 'NVDA', name: 'NVIDIA Corporation', basePrice: 521.13, baseChange: 8.5, marketCap: '1.28T', volume: '52.8M' },
+      { symbol: 'AAPL', name: 'Apple Inc', basePrice: 189.79, baseChange: 3.2, marketCap: '2.95T', volume: '38.9M' },
+      { symbol: 'GOOGL', name: 'Alphabet Inc', basePrice: 134.78, baseChange: 2.8, marketCap: '1.68T', volume: '25.6M' },
+      { symbol: 'MSFT', name: 'Microsoft Corporation', basePrice: 378.92, baseChange: 4.1, marketCap: '2.81T', volume: '28.4M' },
+      { symbol: 'META', name: 'Meta Platforms Inc', basePrice: 325.45, baseChange: 6.7, marketCap: '826.5B', volume: '18.7M' },
+      { symbol: 'AMZN', name: 'Amazon.com Inc', basePrice: 142.31, baseChange: 3.9, marketCap: '1.48T', volume: '33.2M' },
+      { symbol: 'AMD', name: 'Advanced Micro Devices', basePrice: 142.56, baseChange: 4.8, marketCap: '230.1B', volume: '62.1M' },
+      { symbol: 'NFLX', name: 'Netflix Inc', basePrice: 445.23, baseChange: 7.2, marketCap: '197.8B', volume: '12.4M' },
+      { symbol: 'CRM', name: 'Salesforce Inc', basePrice: 234.67, baseChange: 3.5, marketCap: '224.1B', volume: '8.9M' },
+      { symbol: 'INTC', name: 'Intel Corporation', basePrice: 43.21, baseChange: 1.8, marketCap: '181.5B', volume: '28.7M' },
+      { symbol: 'PYPL', name: 'PayPal Holdings Inc', basePrice: 61.89, baseChange: 2.1, marketCap: '72.4B', volume: '14.2M' }
+    ];
+    
+    // Generate stocks based on type
+    let stocks = baseStocks.map(stock => generateStockData(stock, type));
+    
+    // Sort based on type
+    if (type === 'gainers') {
+      stocks = stocks
+        .filter(stock => stock.changePercent > 0)
+        .sort((a, b) => b.changePercent - a.changePercent)
+        .slice(0, 8);
+    } else if (type === 'losers') {
+      stocks = stocks
+        .filter(stock => stock.changePercent < 0)
+        .sort((a, b) => a.changePercent - b.changePercent)
+        .slice(0, 8);
+    } else {
+      // Trending - mix of high volume and significant moves
+      stocks = stocks
+        .sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
+        .slice(0, 8);
+    }
 
     return NextResponse.json({
       success: true,
-      data: stocksData[type] || stocksData.trending,
+      data: stocks,
       type,
       timestamp: new Date().toISOString()
     });

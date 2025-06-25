@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,8 @@ import SearchBar from '@/components/market/SearchBar';
 import { marketAPI, formatCurrency, formatPercentage, watchlistManager } from '@/lib/market-api';
 
 const MarketPage = () => {
+  const router = useRouter();
+  
   // State management
   const [marketData, setMarketData] = useState({
     indices: [],
@@ -90,8 +93,49 @@ const MarketPage = () => {
     return () => clearInterval(interval);
   }, [loading, fetchMarketData]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Ctrl/Cmd + K for search focus
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault();
+        const searchInput = document.querySelector('input[type="text"]');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+      
+      // Number keys for quick tab switching
+      if (event.key >= '1' && event.key <= '3' && !event.ctrlKey && !event.metaKey) {
+        const target = event.target;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          event.preventDefault();
+          const tabs = ['trending', 'gainers', 'losers'];
+          const selectedTab = tabs[parseInt(event.key) - 1];
+          if (selectedTab) {
+            handleTabChange(selectedTab);
+          }
+        }
+      }
+      
+      // R for refresh
+      if (event.key === 'r' && !event.ctrlKey && !event.metaKey) {
+        const target = event.target;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          event.preventDefault();
+          fetchMarketData();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [fetchMarketData]);
+
   // Handle tab change
   const handleTabChange = async (newTab) => {
+    if (newTab === activeTab) return;
+    
     setActiveTab(newTab);
     setLoading(true);
     try {
@@ -119,14 +163,32 @@ const MarketPage = () => {
   };
 
   // Search handling
-  const handleSearch = (query) => {
-    // Implement search logic if needed
-    console.log('Searching for:', query);
+  const handleSearch = async (query) => {
+    if (!query || query.length < 2) return;
+    
+    try {
+      const results = await marketAPI.searchStocks(query);
+      console.log('Search results:', results);
+      // You can set search results to state or navigate to a search page
+    } catch (error) {
+      console.error('Search error:', error);
+    }
   };
 
   const handleSuggestionSelect = (suggestion) => {
-    // Navigate to stock detail page or add to watchlist
-    console.log('Selected:', suggestion);
+    // Navigate to stock detail page
+    router.push(`/market/stock/${suggestion.symbol}`);
+  };
+
+  const handleStockClick = (stock) => {
+    // Navigate to stock detail page
+    router.push(`/market/stock/${stock.symbol}`);
+  };
+
+  const handleSectorClick = (sector) => {
+    // Navigate to sector detail page
+    const sectorSlug = sector.name.toLowerCase().replace(/\s+/g, '-');
+    router.push(`/market/sector/${sectorSlug}`);
   };
 
   // Utility functions
@@ -305,17 +367,21 @@ const MarketPage = () => {
                   <Badge variant="secondary" className="bg-gray-800 text-gray-300 text-xs">
                     {watchlist.length}
                   </Badge>
-                  <Button variant="ghost" size="sm" className="w-6 bg-gray-200 h-6 p-0">
+                  <Button variant="ghost" size="sm" className="w-6 hover:cursor-pointer bg-gray-200 h-6 p-0">
                     <Plus className="w-3 h-3" />
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 text-gray-300">
               {watchlist.length > 0 ? (
                 <div className="divide-y divide-black">
                   {watchlist.slice(0, 6).map((stock) => (
-                    <div key={stock.symbol} className="p-3 hover:bg-gray-800/50 transition-colors">
+                    <div 
+                      key={stock.symbol} 
+                      className="p-3 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                      onClick={() => handleStockClick(stock)}
+                    >
                       <div className="flex items-center justify-between">
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">{stock.symbol}</p>
@@ -414,6 +480,7 @@ const MarketPage = () => {
                     getChangeColor={getChangeColor}
                     getChangeIcon={getChangeIcon}
                     onWatchlistToggle={handleWatchlistToggle}
+                    onStockClick={handleStockClick}
                     isInWatchlist={watchlistManager.isInWatchlist(stock.symbol)}
                   />
                 ))}
@@ -431,7 +498,11 @@ const MarketPage = () => {
             <CardContent className="p-0">
               <div className="divide-y divide-gray-800">
                 {marketData.sectors.map((sector) => (
-                  <div key={sector.name} className="p-4 hover:bg-gray-800/30 transition-colors cursor-pointer">
+                  <div 
+                    key={sector.name} 
+                    className="p-4 hover:bg-gray-800/30 transition-colors cursor-pointer"
+                    onClick={() => handleSectorClick(sector)}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="min-w-0">
                         <p className="font-medium text-sm text-white truncate">{sector.name}</p>
