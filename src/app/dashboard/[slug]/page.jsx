@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { useRouter, useSearchParams, useParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SplashScreen from "@/components/ui/splash-screen";
@@ -79,7 +79,6 @@ function ProfessionalDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [companyData, setCompanyData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [currentCompany, setCurrentCompany] = useState("");
   const [selectedTab, setSelectedTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
@@ -98,8 +97,6 @@ function ProfessionalDashboard() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const params = useParams();
-  const symbol = params.slug?.toUpperCase();
 
   // Enhanced mock data for demonstration - moved to top to avoid initialization issues
   const mockData = {
@@ -212,65 +209,6 @@ function ProfessionalDashboard() {
       }, 1500);
     }
   }, [searchParams]);
-
-  // Handle symbol parameter from URL slug
-  useEffect(() => {
-    if (symbol && symbol !== currentCompany) {
-      setCurrentCompany(symbol);
-      setSearchQuery(symbol);
-      analyzeCompany(symbol);
-    }
-  }, [symbol]);
-
-  // Function to analyze company using the API
-  const analyzeCompany = async (companySymbol) => {
-    if (!companySymbol) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log(`Analyzing ${companySymbol}...`);
-      
-      const response = await fetch('/api/analyze-company', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ symbol: companySymbol }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.error) {
-        console.warn('API returned error:', data.error);
-        // Fall back to mock data with the provided symbol
-        setCompanyData({
-          ...mockData,
-          companyName: `${companySymbol} Inc.`,
-          symbol: companySymbol.toUpperCase()
-        });
-      } else {
-        console.log('Successfully analyzed:', companySymbol);
-        // Use the real data from the API
-        setCompanyData(data);
-      }
-    } catch (error) {
-      console.error('Error analyzing company:', error);
-      // Fall back to mock data with the provided symbol
-      setCompanyData({
-        ...mockData,
-        companyName: `${companySymbol} Inc.`,
-        symbol: companySymbol.toUpperCase()
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Enhanced export functionality with multiple formats
   const handleExportAdvanced = async (format = 'pdf') => {

@@ -67,6 +67,58 @@ export const marketAPI = {
       console.error('Error searching stocks:', error);
       throw error;
     }
+  },
+
+  // Fetch individual stock data by symbol from external API
+  async getStockBySymbol(symbol) {
+    try {
+      // Example using Finnhub (replace with your preferred provider)
+      const apiKey = process.env.FINNHUB_API_KEY;
+      const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${apiKey}`;
+      const profileUrl = `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(symbol)}&token=${apiKey}`;
+      const metricUrl = `https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all&token=${apiKey}`;
+      const [quoteRes, profileRes, metricRes] = await Promise.all([
+        fetch(url),
+        fetch(profileUrl),
+        fetch(metricUrl)
+      ]);
+      if (!quoteRes.ok || !profileRes.ok || !metricRes.ok) throw new Error('Failed to fetch stock data');
+      const quote = await quoteRes.json();
+      const profile = await profileRes.json();
+      const metric = await metricRes.json();
+      if (!quote || !profile || !profile.ticker) throw new Error('Stock not found');
+      const m = metric.metric || {};
+      return {
+        symbol: profile.ticker,
+        name: profile.name,
+        exchange: profile.exchange,
+        sector: profile.finnhubIndustry,
+        price: quote.c,
+        change: quote.d,
+        changePercent: quote.dp,
+        dayHigh: quote.h,
+        dayLow: quote.l,
+        open: quote.o,
+        previousClose: quote.pc,
+        marketCap: profile.marketCapitalization,
+        volume: quote.v,
+        country: profile.country,
+        currency: profile.currency,
+        ipo: profile.ipo,
+        logo: profile.logo,
+        weburl: profile.weburl,
+        peRatio: m.peBasicExclExtraTTM ?? null,
+        eps: m.epsTTM ?? null,
+        weekHigh52: m['52WeekHigh'] ?? null,
+        weekLow52: m['52WeekLow'] ?? null,
+        avgVolume: m['10DayAverageTradingVolume'] ?? null,
+        beta: m.beta ?? null,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error fetching stock by symbol:', error);
+      throw error;
+    }
   }
 };
 

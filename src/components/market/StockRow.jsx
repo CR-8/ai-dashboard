@@ -13,14 +13,14 @@ const StockRow = ({
 }) => {
   return (
     <div 
-      className="flex items-center justify-between p-4 hover:bg-gray-800/30 transition-all cursor-pointer group font-mono"
+      className="flex items-center justify-between p-4 hover:bg-zinc-800/30 transition-all cursor-pointer group font-mono"
       onClick={() => onStockClick && onStockClick(stock)}
     >
       <div className="flex items-center space-x-4 min-w-0 flex-1">
         <Button 
           variant="ghost" 
           size="sm" 
-          className="p-1 h-auto hover:bg-gray-700/50 transition-colors flex-shrink-0"
+          className="p-1 h-auto hover:bg-zinc-700/50 transition-colors flex-shrink-0"
           onClick={(e) => {
             e.stopPropagation();
             onWatchlistToggle && onWatchlistToggle(stock);

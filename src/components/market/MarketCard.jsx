@@ -8,11 +8,12 @@ const MarketCard = ({
   getChangeColor, 
   getChangeIcon, 
   getBgChangeColor,
-  onClick 
+  onClick,
+  isActive = false
 }) => {
   return (
     <Card 
-      className="bg-black border-gray-800 hover:bg-gray-800/50 transition-all cursor-pointer group font-mono"
+      className={`bg-black border-gray-800 transition-all cursor-pointer group font-mono ${isActive ? 'ring-2 ring-white/40 bg-zinc-900/35' : ''}`}
       onClick={() => onClick && onClick(index)}
     >
       <CardContent className="p-4">

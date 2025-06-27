@@ -26,6 +26,7 @@ import {
 import MarketCard from '@/components/market/MarketCard';
 import StockRow from '@/components/market/StockRow';
 import SearchBar from '@/components/market/SearchBar';
+import InteractiveChart from '@/components/ui/interactive-chart';
 import { marketAPI, formatCurrency, formatPercentage, watchlistManager } from '@/lib/market-api';
 
 const MarketPage = () => {
@@ -42,6 +43,8 @@ const MarketPage = () => {
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [activeTab, setActiveTab] = useState('trending');
+  const [activeTimeframe, setActiveTimeframe] = useState('1W');
+  const [activeIndex, setActiveIndex] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
 
   // Fetch all market data
@@ -81,14 +84,21 @@ const MarketPage = () => {
   useEffect(() => {
     fetchMarketData();
   }, [fetchMarketData]);
+  
+  // Set active index when market data is loaded
+  useEffect(() => {
+    if (marketData.indices.length > 0 && !activeIndex) {
+      setActiveIndex(marketData.indices[0]);
+    }
+  }, [marketData.indices, activeIndex]);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 20 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       if (!loading) {
         fetchMarketData();
       }
-    }, 30000);
+    }, 20000);
 
     return () => clearInterval(interval);
   }, [loading, fetchMarketData]);
@@ -190,6 +200,11 @@ const MarketPage = () => {
     const sectorSlug = sector.name.toLowerCase().replace(/\s+/g, '-');
     router.push(`/market/sector/${sectorSlug}`);
   };
+  
+  // Handle index selection for chart
+  const handleIndexSelect = (index) => {
+    setActiveIndex(index);
+  };
 
   // Utility functions
   const getChangeColor = (change) => {
@@ -237,7 +252,7 @@ const MarketPage = () => {
               size="sm"
               onClick={fetchMarketData}
               disabled={loading}
-              className="border-gray-700 hover:bg-gray-900 transition-colors text-xs"
+              className="border-gray-700 hover:bg-zinc-900 transition-colors text-xs"
             >
               <RefreshCw className={`w-3 h-3 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
@@ -254,82 +269,6 @@ const MarketPage = () => {
 
         {/* Bento Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min">
-          
-          {/* Portfolio Overview - Large Card */}
-          <Card className="md:col-span-2 lg:col-span-2 xl:col-span-3 bg-black border-gray-800">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-400 uppercase tracking-wider">
-                Portfolio Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="text-3xl text-gray-200 font-bold">$127,543.82</div>
-                <div className="flex items-center mt-1">
-                  <ArrowUpRight className="w-4 h-4 text-green-400 mr-1" />
-                  <span className="text-green-400 text-sm font-medium">+2.34%</span>
-                  <span className="text-gray-500 text-sm ml-2">today</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div>
-                  <div className="text-lg font-semibold text-green-400">+$2,847.36</div>
-                  <div className="text-xs text-gray-500">Day's P&L</div>
-                </div>
-                <div>
-                  <div className="text-lg text-gray-300 font-semibold">${marketData.marketStats.totalVolume || '12.8B'}</div>
-                  <div className="text-xs text-gray-500">Volume</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Stats Cards */}
-          <Card className="bg-black text-gray-200 border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-5 h-5 text-green-400" />
-                <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-0 text-xs">
-                  +12%
-                </Badge>
-              </div>
-              <div className="space-y-1">
-                <div className="text-xl font-bold">{marketData.marketStats.advancers || '2,847'}</div>
-                <div className="text-xs text-gray-500 uppercase tracking-wide">Advancers</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-black text-gray-200 border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <TrendingDown className="w-5 h-5 text-red-400" />
-                <Badge variant="secondary" className="bg-red-500/10 text-red-400 border-0 text-xs">
-                  -8%
-                </Badge>
-              </div>
-              <div className="space-y-1">
-                <div className="text-xl font-bold">{marketData.marketStats.decliners || '1,423'}</div>
-                <div className="text-xs text-gray-500 uppercase tracking-wide">Decliners</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-black text-gray-200 border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <Activity className="w-5 h-5 text-blue-400" />
-                <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 border-0 text-xs">
-                  Live
-                </Badge>
-              </div>
-              <div className="space-y-1">
-                <div className="text-xl font-bold">{marketData.marketStats.activelyTrading || '4,127'}</div>
-                <div className="text-xs text-gray-500 uppercase tracking-wide">Active</div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Chart Section - Large */}
           <Card className="col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 bg-black border-gray-800">
             <CardHeader className="border-b border-gray-800 pb-4">
@@ -338,21 +277,59 @@ const MarketPage = () => {
                   Market Chart
                 </CardTitle>
                 <div className="flex items-center text-gray-200 space-x-2">
-                  <Button variant="ghost" size="sm" className="text-xs h-7 px-2">1D</Button>
-                  <Button variant="ghost" size="sm" className="text-xs h-7 px-2 bg-white text-black">1W</Button>
-                  <Button variant="ghost" size="sm" className="text-xs h-7 px-2">1M</Button>
-                  <Button variant="ghost" size="sm" className="text-xs h-7 px-2">1Y</Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={`text-xs h-7 px-2 ${activeTimeframe === '1D' ? 'bg-white text-black' : ''}`}
+                    onClick={() => setActiveTimeframe('1D')}
+                  >
+                    1D
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={`text-xs h-7 px-2 ${activeTimeframe === '1W' ? 'bg-white text-black' : ''}`}
+                    onClick={() => setActiveTimeframe('1W')}
+                  >
+                    1W
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={`text-xs h-7 px-2 ${activeTimeframe === '1M' ? 'bg-white text-black' : ''}`}
+                    onClick={() => setActiveTimeframe('1M')}
+                  >
+                    1M
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={`text-xs h-7 px-2 ${activeTimeframe === '1Y' ? 'bg-white text-black' : ''}`}
+                    onClick={() => setActiveTimeframe('1Y')}
+                  >
+                    1Y
+                  </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="h-64 flex items-center justify-center border border-dashed border-gray-700 rounded-lg">
-                <div className="text-center">
-                  <BarChart3 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                  <p className="text-gray-400 text-sm">Interactive Chart</p>
-                  <p className="text-gray-600 text-xs">Real-time price movements</p>
+              {marketData.indices.length > 0 && activeIndex ? (
+                <InteractiveChart 
+                  symbol={activeIndex.ticker}
+                  timeframe={activeTimeframe}
+                  chartType="area"
+                  height={300}
+                  className=""
+                />
+              ) : (
+                <div className="h-64 flex items-center justify-center border border-dashed border-gray-700 rounded-lg">
+                  <div className="text-center">
+                    <BarChart3 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400 text-sm">Loading chart data...</p>
+                    <p className="text-gray-600 text-xs">Please wait</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -379,7 +356,7 @@ const MarketPage = () => {
                   {watchlist.slice(0, 6).map((stock) => (
                     <div 
                       key={stock.symbol} 
-                      className="p-3 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                      className="p-3 hover:bg-zinc-800/50 transition-colors cursor-pointer"
                       onClick={() => handleStockClick(stock)}
                     >
                       <div className="flex items-center justify-between">
@@ -423,6 +400,8 @@ const MarketPage = () => {
                 getChangeColor={getChangeColor}
                 getChangeIcon={getChangeIcon}
                 getBgChangeColor={getBgChangeColor}
+                onClick={handleIndexSelect}
+                isActive={activeIndex?.ticker === index.ticker}
               />
             ))}
           </div>
@@ -500,7 +479,7 @@ const MarketPage = () => {
                 {marketData.sectors.map((sector) => (
                   <div 
                     key={sector.name} 
-                    className="p-4 hover:bg-gray-800/30 transition-colors cursor-pointer"
+                    className="p-4 hover:bg-zinc-800/30 transition-colors cursor-pointer"
                     onClick={() => handleSectorClick(sector)}
                   >
                     <div className="flex items-center justify-between">
