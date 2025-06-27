@@ -1,4 +1,4 @@
-export const companies = [
+const companies = [
     {
     "symbol": "A",
     "companyName": "Agilent Technologies, Inc.",
