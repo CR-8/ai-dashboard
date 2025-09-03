@@ -1,7 +1,5 @@
 // Market API utilities
-const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://yourdomain.com' 
-  : 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_BASE_URL;
 
 export const marketAPI = {
   // Fetch market indices (S&P 500, Dow Jones, etc.)
