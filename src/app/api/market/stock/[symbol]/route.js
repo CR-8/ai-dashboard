@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { marketAPI } from '@/lib/market-api'
 
-export async function GET(request, context) {
+export async function GET(request, { params }) {
   try {
-    const { params } = await context;
-    const { symbol } = await params;
+    const { symbol } = params;
     const symbolUpper = symbol?.toUpperCase();
 
     if (!symbolUpper) {

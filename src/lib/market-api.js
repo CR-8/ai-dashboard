@@ -1,5 +1,7 @@
 // Market API utilities
-const BASE_URL = process.env.NEXT_BASE_URL;
+const BASE_URL = typeof window !== 'undefined'
+  ? window.location.origin
+  : process.env.NEXT_BASE_URL || 'http://localhost:3000';
 
 export const marketAPI = {
   // Fetch market indices (S&P 500, Dow Jones, etc.)

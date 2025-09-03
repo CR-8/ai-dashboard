@@ -307,10 +307,9 @@ function generateRealtimeSectorData(baseSector) {
   };
 }
 
-export async function GET(request, context) {
+export async function GET(request, { params }) {
   try {
-    const { params } = await context;
-    const { sector } = await params;
+    const { sector } = params;
     const sectorSlug = sector?.toLowerCase();
     
     if (!sectorSlug) {

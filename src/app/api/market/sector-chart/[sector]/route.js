@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(request, context) {
+export async function GET(request, { params }) {
   try {
-    const { params } = await context;
-    const { sector } = await params;
+    const { sector } = params;
     const { searchParams } = new URL(request.url);
     const timeframe = searchParams.get('timeframe') || '1M';
 

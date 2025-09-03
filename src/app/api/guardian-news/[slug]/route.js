@@ -61,11 +61,10 @@ function formatPlainTextToHTML(text) {
         .join('\n\n');
 }
 
-export async function GET(request, context) {
+export async function GET(request, { params }) {
     try {
         // Await params as required by Next.js 15
-        const { params } = await context;
-        const { slug } = await params;
+        const { slug } = params;
         
         // Decode the slug to get the original article ID
         const decodedSlug = decodeURIComponent(slug);
