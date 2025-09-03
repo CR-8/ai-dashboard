@@ -4,9 +4,10 @@ import { marketAPI } from '@/lib/market-api'
 export async function GET(request, context) {
   try {
     const { params } = await context;
-    const symbol = params.symbol?.toUpperCase();
+    const { symbol } = await params;
+    const symbolUpper = symbol?.toUpperCase();
 
-    if (!symbol) {
+    if (!symbolUpper) {
       return NextResponse.json(
         { success: false, error: 'Stock symbol is required' },
         { status: 400 }
@@ -16,10 +17,10 @@ export async function GET(request, context) {
     // Fetch stock data from external API
     let stockData;
     try {
-      stockData = await marketAPI.getStockBySymbol(symbol);
+      stockData = await marketAPI.getStockBySymbol(symbolUpper);
     } catch (error) {
       return NextResponse.json(
-        { success: false, error: `Stock symbol '${symbol}' not found or unavailable` },
+        { success: false, error: `Stock symbol '${symbolUpper}' not found or unavailable` },
         { status: 404 }
       );
     }

@@ -26,16 +26,17 @@ A modern Next.js 14 application that provides comprehensive financial analysis w
 - **Charts**: Recharts
 - **AI**: Google Gemini AI
 - **Icons**: Lucide React
-- **APIs**: Alpha Vantage, Finnhub, FMP, Twelve Data
+- **APIs**: Alpha Vantage, Finnhub, FMP, Twelve Data, The Guardian
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+ installed
-- Supabase account and project
-- Google AI API key
-- Alpha Vantage API key (minimum required)
+- Supabase account and project ✅ (configured)
+- Google AI API key ✅ (configured)
+- Alpha Vantage API key ✅ (configured)
+- Additional API keys for enhanced functionality ✅ (configured)
 
 ### Installation
 
@@ -50,7 +51,7 @@ A modern Next.js 14 application that provides comprehensive financial analysis w
    ```
 
 3. **Set up environment variables**:
-   Copy `.env.example` to `.env.local` and fill in your values:
+   The `.env.local` file has been created with all required API keys. The file includes:
    ```env
    # Supabase Configuration (Required)
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
@@ -216,6 +217,12 @@ const prompt = `Analyze the company ${companyName} with the following data...`;
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `GOOGLE_AI_API_KEY`
    - `ALPHA_VANTAGE_API_KEY`
+   - `FINNHUB_API_KEY`
+   - `FMP_API_KEY`
+   - `TWELVE_DATA_API_KEY`
+   - `NEWS_API_KEY`
+   - `GUARDIAN_API_KEY`
+   - `POLYGON_API_KEY`
 4. Deploy!
 
 ### Environment Variables for Production
@@ -240,6 +247,7 @@ ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
 | `FMP_API_KEY` | Financial Modeling Prep API key (optional) | No |
 | `TWELVE_DATA_API_KEY` | Twelve Data API key (optional) | No |
 | `NEWS_API_KEY` | News API key (optional) | No |
+| `GUARDIAN_API_KEY` | The Guardian News API key (optional) | No |
 | `POLYGON_API_KEY` | Polygon.io API key (optional) | No |
 
 ## Migration from Clerk

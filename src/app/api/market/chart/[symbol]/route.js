@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request, context) {
   try {
     const { params } = await context;
-    const { symbol } = params;
+    const { symbol } = await params;
     const { searchParams } = new URL(request.url);
     const timeframe = searchParams.get('timeframe') || '1D';
 

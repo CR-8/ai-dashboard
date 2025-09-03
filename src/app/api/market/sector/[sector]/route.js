@@ -310,7 +310,8 @@ function generateRealtimeSectorData(baseSector) {
 export async function GET(request, context) {
   try {
     const { params } = await context;
-    const sectorSlug = params.sector?.toLowerCase();
+    const { sector } = await params;
+    const sectorSlug = sector?.toLowerCase();
     
     if (!sectorSlug) {
       return NextResponse.json(

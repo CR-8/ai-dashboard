@@ -65,7 +65,7 @@ export async function GET(request, context) {
     try {
         // Await params as required by Next.js 15
         const { params } = await context;
-        const { slug } = params;
+        const { slug } = await params;
         
         // Decode the slug to get the original article ID
         const decodedSlug = decodeURIComponent(slug);
